@@ -113,7 +113,7 @@ const Profile = () => {
           </div>
           <div className="form-group">
             <label className="form-label">Page Title (SEO / Open Graph)</label>
-            <input className="form-input" placeholder="Dr. Priya Sharma — Therapist in Mumbai"
+            <input className="form-input" placeholder="Dr. Priya Sharma — Doctor & Specialist in Mumbai"
               value={form.ogTitle} onChange={e => setForm({...form, ogTitle: e.target.value})} />
           </div>
           <div className="form-group">

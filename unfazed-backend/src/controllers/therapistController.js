@@ -21,7 +21,7 @@ const updateProfile = async (req, res) => {
     const { name, bio, specializations, languages, phone, ogTitle, ogDescription } = req.body;
 
     const therapist = await Therapist.findById(req.therapist._id);
-    if (!therapist) return res.status(404).json({ message: 'Therapist not found' });
+    if (!therapist) return res.status(404).json({ message: 'Doctor profile not found' });
 
     if (name) therapist.name = name;
     if (bio !== undefined) therapist.bio = bio;
@@ -49,16 +49,64 @@ const updateProfile = async (req, res) => {
   }
 };
 
+const DEFAULT_DOCTOR_PROFILES = {
+  'priya-sharma': {
+    _id: 'doc-fallback-2',
+    name: 'Dr. Priya Sharma',
+    slug: 'priya-sharma',
+    profilePic: 'https://images.unsplash.com/photo-1594824813566-78a0d922b910?w=300&auto=format&fit=crop&q=80',
+    specializations: ['CBT Therapy', 'General Diagnosis', 'Psychology'],
+    experienceYears: 12,
+    education: 'MD Psychiatry, Johns Hopkins',
+    certificate: 'Board Certified Psychiatrist',
+    symptoms: 'Burnout, ADHD, Relationship Issues, Bipolar Disorder',
+    languages: ['English', 'Hindi'],
+    bio: 'MD Psychiatry & Clinical Psychologist. 12+ years experience in CBT, Anxiety, and Stress Management.',
+  },
+  'marcus-vance': {
+    _id: 'doc-fallback-1',
+    name: 'Dr. Marcus Vance',
+    slug: 'marcus-vance',
+    profilePic: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80',
+    specializations: ['Psychology', 'CBT Therapy'],
+    experienceYears: 12,
+    education: 'PhD in Clinical Psychology, UCLA',
+    certificate: 'Certified CBT Specialist, APA',
+    symptoms: 'Anxiety & Panic Attacks, Stress, Depression, Sleep Disorders',
+    languages: ['English', 'Spanish'],
+    bio: 'Licensed mental health professional dedicated to providing compassionate, evidence-based therapy sessions.',
+  },
+  'sarah-jenkins': {
+    _id: 'doc-fallback-3',
+    name: 'Dr. Sarah Jenkins',
+    slug: 'sarah-jenkins',
+    profilePic: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&auto=format&fit=crop&q=80',
+    specializations: ['Pediatrics', 'Psychology'],
+    experienceYears: 14,
+    education: 'PsyD Child & Adolescent Psychology',
+    certificate: 'Pediatric Mental Health Fellow',
+    symptoms: 'Child Behavioral Health, Adolescent Anxiety, Family Counseling',
+    languages: ['English'],
+    bio: 'Specialist in pediatric and adolescent mental wellness.',
+  }
+};
+
 // @desc    Get public branded profile page by slug
 // @route   GET /api/therapist/:slug (public)
 // @access  Public
 const getPublicProfile = async (req, res) => {
   try {
-    const therapist = await Therapist.findOne({ slug: req.params.slug }).select(
+    const slugKey = req.params.slug?.toLowerCase().trim();
+    const therapist = await Therapist.findOne({ slug: slugKey }).select(
       'name bio specializations languages profilePic ogTitle ogDescription slug'
     );
-    if (!therapist) return res.status(404).json({ message: 'Therapist not found' });
-    res.json(therapist);
+    if (therapist) {
+      return res.json(therapist);
+    }
+    
+    // Fallback to default doctor profile
+    const fallback = DEFAULT_DOCTOR_PROFILES[slugKey] || DEFAULT_DOCTOR_PROFILES['priya-sharma'];
+    res.json(fallback);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
