@@ -17,7 +17,12 @@ const server = http.createServer(app);
 // Attach Socket.io to the server
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: [
+      process.env.CLIENT_URL,
+      'https://unfazed-major-project-intership.vercel.app',
+      'http://localhost:5173',
+      'http://localhost:3000'
+    ].filter(Boolean),
     methods: ['GET', 'POST'],
   },
 });

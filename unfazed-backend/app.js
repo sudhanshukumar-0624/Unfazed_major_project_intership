@@ -19,10 +19,16 @@ const app = express();
 // ── Middleware ──
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    // Allow local development, Vercel frontend domain, or custom process.env.CLIENT_URL
+    if (
+      !origin ||
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
+      origin.includes('vercel.app') ||
+      origin === (process.env.CLIENT_URL || 'https://unfazed-major-project-intership.vercel.app')
+    ) {
       callback(null, true);
     } else {
-      callback(null, origin === (process.env.CLIENT_URL || 'http://localhost:5173'));
+      callback(null, true);
     }
   },
   credentials: true,
