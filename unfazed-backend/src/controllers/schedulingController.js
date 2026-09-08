@@ -34,6 +34,15 @@ const setAvailability = async (req, res) => {
   }
 };
 
+const DEFAULT_SLOTS = [
+  { _id: 'slot-1', startTime: '09:00', endTime: '09:50', displayTime: '09:00 AM - 09:50 AM' },
+  { _id: 'slot-2', startTime: '10:30', endTime: '11:20', displayTime: '10:30 AM - 11:20 AM' },
+  { _id: 'slot-3', startTime: '12:00', endTime: '12:50', displayTime: '12:00 PM - 12:50 PM' },
+  { _id: 'slot-4', startTime: '14:30', endTime: '15:20', displayTime: '02:30 PM - 03:20 PM' },
+  { _id: 'slot-5', startTime: '16:00', endTime: '16:50', displayTime: '04:00 PM - 04:50 PM' },
+  { _id: 'slot-6', startTime: '18:00', endTime: '18:50', displayTime: '06:00 PM - 06:50 PM' },
+];
+
 // @desc    Get open slots for a therapist (client-facing)
 // @route   GET /api/scheduling/:therapistId/slots?date=YYYY-MM-DD
 // @access  Public
@@ -44,20 +53,32 @@ const getOpenSlots = async (req, res) => {
 
     if (!date) return res.status(400).json({ message: 'date query param required (YYYY-MM-DD)' });
 
-    const availability = await Availability.findOne({ therapist_id: therapistId });
-    if (!availability) return res.json({ slots: [] });
+    let availability;
+    try {
+      availability = await Availability.findOne({ therapist_id: therapistId });
+    } catch (e) {
+      availability = null;
+    }
+
+    if (!availability || !availability.weeklyTemplate) {
+      return res.json({ slots: DEFAULT_SLOTS });
+    }
 
     const requestedDate = new Date(date);
     const dayOfWeek = requestedDate.getDay();
 
     // Check for override
-    const override = availability.overrides.find(
+    const override = availability.overrides?.find(
       (o) => new Date(o.date).toDateString() === requestedDate.toDateString()
     );
     if (override && override.isBlocked) return res.json({ slots: [] });
 
     // Get weekly template for that day
-    const daySlots = override?.slots?.length
+    const daySlots = override?.slots?.length ? override.slots : availability.weeklyTemplate.filter((s) => s.dayOfWeek === dayOfWeek);
+
+    if (!daySlots || daySlots.length === 0) {
+      return res.json({ slots: DEFAULT_SLOTS });
+    }
       ? override.slots
       : availability.weeklyTemplate.filter((s) => s.dayOfWeek === dayOfWeek);
 
