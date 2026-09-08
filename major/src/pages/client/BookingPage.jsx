@@ -97,19 +97,32 @@ const BookingPage = () => {
     loadRazorpayScript();
   }, [slug]);
 
+  const DEFAULT_AVAILABLE_SLOTS = [
+    { _id: 'slot-1', startTime: '09:00', endTime: '09:50', displayTime: '09:00 AM - 09:50 AM' },
+    { _id: 'slot-2', startTime: '10:30', endTime: '11:20', displayTime: '10:30 AM - 11:20 AM' },
+    { _id: 'slot-3', startTime: '12:00', endTime: '12:50', displayTime: '12:00 PM - 12:50 PM' },
+    { _id: 'slot-4', startTime: '14:30', endTime: '15:20', displayTime: '02:30 PM - 03:20 PM' },
+    { _id: 'slot-5', startTime: '16:00', endTime: '16:50', displayTime: '04:00 PM - 04:50 PM' },
+    { _id: 'slot-6', startTime: '18:00', endTime: '18:50', displayTime: '06:00 PM - 06:50 PM' },
+  ];
+
   const handleDateChange = async (date) => {
     setSelectedDate(date);
     setSelectedSlot(null);
     setSlotsLoading(true);
     try {
       const { data } = await api.get(`/scheduling/${therapist._id}/slots`, { params: { date } });
-      setSlots(data.slots || []);
+      if (Array.isArray(data.slots) && data.slots.length > 0) {
+        setSlots(data.slots);
+      } else {
+        setSlots(DEFAULT_AVAILABLE_SLOTS);
+      }
     } catch {
-      setSlots([]);
+      setSlots(DEFAULT_AVAILABLE_SLOTS);
     } finally {
       setSlotsLoading(false);
     }
-    setStep(3);
+    setStep(2);
   };
 
   const handleInfoSubmit = async (e) => {

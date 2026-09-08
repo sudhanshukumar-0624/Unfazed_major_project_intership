@@ -219,7 +219,7 @@ const DoctorsDirectory = () => {
               <span style={{ position: 'absolute', top: 4, right: 4, width: 8, height: 8, background: '#ef4444', borderRadius: '50%' }} />
             </div>
             <Link to="/login" className="btn btn-secondary btn-sm" style={{ borderRadius: 20 }}>
-              Doctor Portal Login
+              Sign In / Account
             </Link>
 
             {/* Notifications Popover Drawer */}

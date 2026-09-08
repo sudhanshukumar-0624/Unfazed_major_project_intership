@@ -14,8 +14,12 @@ const Login = () => {
   const onSubmit = async (data) => {
     setLoading(true); setError('');
     try {
-      await login(data.email, data.password);
-      navigate('/dashboard');
+      const user = await login(data.email, data.password);
+      if (user?.role === 'client' || data.email.toLowerCase().includes('client')) {
+        navigate('/');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
@@ -33,19 +37,23 @@ const Login = () => {
           client_id: clientId,
           callback: async (response) => {
             try {
-              // Decode JWT payload or pass token to backend
               const base64Url = response.credential.split('.')[1];
               const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
               const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
               const payload = JSON.parse(jsonPayload);
 
-              await googleLogin({
+              const user = await googleLogin({
                 name: payload.name,
                 email: payload.email,
                 googleId: payload.sub,
                 profilePic: payload.picture,
               });
-              navigate('/dashboard');
+
+              if (user?.role === 'client' || payload.email.toLowerCase().includes('client')) {
+                navigate('/');
+              } else {
+                navigate('/dashboard');
+              }
             } catch (e) {
               setError('Google OAuth verification failed.');
             }
@@ -53,14 +61,17 @@ const Login = () => {
         });
         window.google.accounts.id.prompt();
       } else {
-        // Dev fallback mode (no Google Cloud Client ID configured in .env yet)
-        await googleLogin({
+        const user = await googleLogin({
           name: 'Dr. Priya Sharma',
           email: 'priya.google@unfazed.com',
           googleId: 'google-oauth-priya-' + Date.now(),
           profilePic: 'https://images.unsplash.com/photo-1594824813566-78a0d922b910?w=300&auto=format&fit=crop&q=80',
         });
-        navigate('/dashboard');
+        if (user?.role === 'client') {
+          navigate('/');
+        } else {
+          navigate('/dashboard');
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Google Sign-In failed.');
