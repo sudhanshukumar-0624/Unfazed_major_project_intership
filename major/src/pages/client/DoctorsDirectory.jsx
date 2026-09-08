@@ -290,7 +290,8 @@ const DoctorsDirectory = () => {
                         className="btn-book-card-navy"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/${doc.slug}`);
+                          const doctorSlug = doc.slug || (doc.name ? doc.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : 'priya-sharma');
+                          navigate(`/${doctorSlug}`);
                         }}
                       >
                         Book an appointment
@@ -319,7 +320,10 @@ const DoctorsDirectory = () => {
                   </div>
                   <button
                     className="btn-navy-lg"
-                    onClick={() => navigate(`/${selectedDoctor.slug}`)}
+                    onClick={() => {
+                      const selSlug = selectedDoctor.slug || (selectedDoctor.name ? selectedDoctor.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : 'priya-sharma');
+                      navigate(`/${selSlug}`);
+                    }}
                   >
                     Book an appointment
                   </button>
