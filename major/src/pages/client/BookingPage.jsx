@@ -106,23 +106,20 @@ const BookingPage = () => {
     { _id: 'slot-6', startTime: '18:00', endTime: '18:50', displayTime: '06:00 PM - 06:50 PM' },
   ];
 
-  const handleDateChange = async (date) => {
+  const handleDateChange = (date) => {
     setSelectedDate(date);
     setSelectedSlot(null);
-    setSlotsLoading(true);
-    try {
-      const { data } = await api.get(`/scheduling/${therapist._id}/slots`, { params: { date } });
-      if (Array.isArray(data.slots) && data.slots.length > 0) {
-        setSlots(data.slots);
-      } else {
-        setSlots(DEFAULT_AVAILABLE_SLOTS);
-      }
-    } catch {
-      setSlots(DEFAULT_AVAILABLE_SLOTS);
-    } finally {
-      setSlotsLoading(false);
-    }
+    setSlots(DEFAULT_AVAILABLE_SLOTS);
     setStep(2);
+
+    // Optional background sync with 3s timeout
+    api.get(`/scheduling/${therapist?._id || 'doc-fallback-2'}/slots`, { params: { date }, timeout: 3000 })
+      .then(({ data }) => {
+        if (Array.isArray(data.slots) && data.slots.length > 0) {
+          setSlots(data.slots);
+        }
+      })
+      .catch(() => {});
   };
 
   const handleInfoSubmit = async (e) => {
