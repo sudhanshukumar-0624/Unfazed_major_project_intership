@@ -1,0 +1,193 @@
+const Availability = require('../models/Availability');
+const Session = require('../models/Session');
+const notificationService = require('../services/notificationService');
+const Therapist = require('../models/Therapist');
+const Client = require('../models/Client');
+
+// @desc    Get availability settings for therapist
+// @route   GET /api/scheduling/availability
+// @access  Private
+const getAvailability = async (req, res) => {
+  try {
+    const availability = await Availability.findOne({ therapist_id: req.therapist._id });
+    res.json(availability || {});
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Set / update availability
+// @route   PUT /api/scheduling/availability
+// @access  Private
+const setAvailability = async (req, res) => {
+  try {
+    const { weeklyTemplate, overrides, sessionDurations, bufferTime, timezone } = req.body;
+
+    const availability = await Availability.findOneAndUpdate(
+      { therapist_id: req.therapist._id },
+      { weeklyTemplate, overrides, sessionDurations, bufferTime, timezone },
+      { new: true, upsert: true, runValidators: true }
+    );
+    res.json(availability);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get open slots for a therapist (client-facing)
+// @route   GET /api/scheduling/:therapistId/slots?date=YYYY-MM-DD
+// @access  Public
+const getOpenSlots = async (req, res) => {
+  try {
+    const { therapistId } = req.params;
+    const { date } = req.query;
+
+    if (!date) return res.status(400).json({ message: 'date query param required (YYYY-MM-DD)' });
+
+    const availability = await Availability.findOne({ therapist_id: therapistId });
+    if (!availability) return res.json({ slots: [] });
+
+    const requestedDate = new Date(date);
+    const dayOfWeek = requestedDate.getDay();
+
+    // Check for override
+    const override = availability.overrides.find(
+      (o) => new Date(o.date).toDateString() === requestedDate.toDateString()
+    );
+    if (override && override.isBlocked) return res.json({ slots: [] });
+
+    // Get weekly template for that day
+    const daySlots = override?.slots?.length
+      ? override.slots
+      : availability.weeklyTemplate.filter((s) => s.dayOfWeek === dayOfWeek);
+
+    // Get existing bookings for that day
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingBookings = await Session.find({
+      therapist_id: therapistId,
+      startTime: { $gte: startOfDay, $lte: endOfDay },
+      status: { $nin: ['cancelled'] },
+    });
+
+    // Build available slots (simple: just return day template minus booked times)
+    const bookedTimes = existingBookings.map((s) => new Date(s.startTime).toTimeString().slice(0, 5));
+    const openSlots = daySlots.filter((slot) => !bookedTimes.includes(slot.startTime));
+
+    res.json({ slots: openSlots, sessionDurations: availability.sessionDurations });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Book a session (client-facing)
+// @route   POST /api/scheduling/book
+// @access  Public
+const bookSession = async (req, res) => {
+  try {
+    const { therapistId, clientId, startTime, duration, timezone } = req.body;
+
+    // Double-booking prevention
+    const endTime = new Date(new Date(startTime).getTime() + duration * 60000);
+    const conflict = await Session.findOne({
+      therapist_id: therapistId,
+      status: { $nin: ['cancelled'] },
+      $or: [
+        { startTime: { $lt: endTime, $gte: new Date(startTime) } },
+      ],
+    });
+    if (conflict) return res.status(409).json({ message: 'This slot is no longer available.' });
+
+    const meetingLink = req.body.meetingLink || `https://meet.jit.si/Unfazed-Session-${Date.now()}`;
+
+    const session = await Session.create({
+      therapist_id: therapistId,
+      client_id: clientId,
+      startTime,
+      endTime,
+      duration,
+      meetingLink,
+      timezone: timezone || 'Asia/Kolkata',
+      bookedVia: 'client_portal',
+    });
+
+    // Fire notification (non-blocking)
+    const therapist = await Therapist.findById(therapistId);
+    const client = await Client.findById(clientId);
+    notificationService.onBookingConfirmed({ therapist, client, session }).catch(console.error);
+
+    res.status(201).json(session);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get all sessions for therapist
+// @route   GET /api/scheduling/sessions
+// @access  Private
+const getSessions = async (req, res) => {
+  try {
+    const sessions = await Session.find({ therapist_id: req.therapist._id })
+      .populate('client_id', 'name email phone')
+      .sort({ startTime: 1 });
+    res.json(sessions);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update session status or meetingLink
+// @route   PUT /api/scheduling/sessions/:id
+// @access  Private
+const updateSession = async (req, res) => {
+  try {
+    const session = await Session.findOneAndUpdate(
+      { _id: req.params.id, therapist_id: req.therapist._id },
+      req.body,
+      { new: true }
+    );
+    if (!session) return res.status(404).json({ message: 'Session not found' });
+    res.json(session);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Trigger reminder notifications for upcoming sessions
+// @route   POST /api/scheduling/send-reminders
+// @access  Private
+const sendReminders = async (req, res) => {
+  try {
+    const therapistId = req.therapist._id;
+    const now = new Date();
+    const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    const upcomingSessions = await Session.find({
+      therapist_id: therapistId,
+      status: 'scheduled',
+      startTime: { $gte: now, $lte: next24h },
+      reminderSent: false,
+    }).populate('client_id');
+
+    const therapist = await Therapist.findById(therapistId);
+
+    let sentCount = 0;
+    for (const session of upcomingSessions) {
+      if (session.client_id) {
+        await notificationService.onSessionReminder({ therapist, client: session.client_id, session });
+        session.reminderSent = true;
+        await session.save();
+        sentCount++;
+      }
+    }
+
+    res.json({ message: `Sent ${sentCount} reminders successfully!`, sentCount });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getAvailability, setAvailability, getOpenSlots, bookSession, getSessions, updateSession, sendReminders };

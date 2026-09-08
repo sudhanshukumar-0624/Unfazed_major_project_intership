@@ -1,0 +1,109 @@
+.sidebar {
+  width: 240px;
+  min-height: 100vh;
+  background: var(--bg-sidebar);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  transition: var(--transition);
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  z-index: 100;
+  overflow: visible;
+  padding: 16px 12px;
+}
+.sidebar.collapsed { width: 76px; }
+
+/* Floating Toggle Button */
+.collapse-tab {
+  position: absolute;
+  top: 24px;
+  right: -13px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 2px solid var(--accent-indigo);
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  transition: var(--transition);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+.collapse-tab:hover {
+  background: var(--accent-indigo);
+  color: #ffffff;
+  transform: scale(1.1);
+}
+
+/* Logo Header */
+.sidebar-logo {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 8px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.logo-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent-indigo), #3b82f6);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 1.2rem; color: #ffffff; flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+.logo-text { font-size: 1.2rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; }
+
+/* Doctor User Info */
+.sidebar-user {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 12px;
+}
+.user-avatar-img {
+  width: 42px; height: 42px; border-radius: 50%;
+  object-fit: cover; border: 2px solid var(--accent-indigo);
+  flex-shrink: 0;
+}
+.user-name { font-size: 0.875rem; font-weight: 700; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-badge {
+  font-size: 0.7rem; color: #34d399; font-weight: 600;
+  background: rgba(52, 211, 153, 0.15); padding: 2px 8px;
+  border-radius: 12px; display: inline-block; margin-top: 2px;
+}
+
+/* Nav Items */
+.sidebar-nav {
+  flex: 1; display: flex; flex-direction: column; gap: 6px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px; border-radius: var(--radius-md);
+  text-decoration: none; color: #94a3b8;
+  font-size: 0.9rem; font-weight: 600;
+  transition: var(--transition); white-space: nowrap;
+}
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+.nav-item.active {
+  background: linear-gradient(135deg, var(--accent-indigo), #4f46e5);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+}
+.nav-icon { font-size: 1.15rem; flex-shrink: 0; }
+
+/* Logout */
+.sidebar-logout {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px; border: none; background: none;
+  color: #94a3b8; cursor: pointer; font-size: 0.9rem;
+  font-weight: 600; border-top: 1px solid rgba(255, 255, 255, 0.08);
+  transition: var(--transition); width: 100%; text-align: left;
+  border-radius: var(--radius-md); margin-top: auto;
+}
+.sidebar-logout:hover {
+  color: #f87171; background: rgba(248, 113, 113, 0.1);
+}

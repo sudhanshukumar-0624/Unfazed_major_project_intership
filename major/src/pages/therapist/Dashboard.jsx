@@ -1,0 +1,357 @@
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Calendar, FileText, IndianRupee, Users, Video, Bell, Settings,
+  Clock, Activity, ChevronLeft, ChevronRight, CheckCircle2, UserCheck, Inbox, Sparkles,
+  Moon, Sun, X, ShieldCheck
+} from 'lucide-react';
+import api from '../../api/axiosInstance';
+import { useAuth } from '../../context/AuthContext';
+import './Dashboard.css';
+
+const Dashboard = () => {
+  const { therapist } = useAuth();
+  const navigate = useNavigate();
+  const [analytics, setAnalytics] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Theme, Notification & Settings State
+  const [isDark, setIsDark] = useState(() => document.body.classList.contains('dark-theme'));
+  const [showNotif, setShowNotif] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [calDay, setCalDay] = useState(14);
+
+  const toggleDarkTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    if (next) {
+      document.body.classList.add('dark-theme');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.body.classList.remove('dark-theme');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [analyticsRes, sessionsRes] = await Promise.all([
+          api.get('/analytics'),
+          api.get('/scheduling/sessions'),
+        ]);
+        setAnalytics(analyticsRes.data);
+        const upcoming = sessionsRes.data
+          .filter(s => new Date(s.startTime) > new Date() && s.status === 'scheduled')
+          .slice(0, 5);
+        setSessions(upcoming);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) return <div className="loading-screen"><div className="spinner" /></div>;
+
+  const doctorName = therapist?.name || 'Dr. Priya Sharma';
+  const doctorDp = therapist?.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(doctorName)}&background=6366f1&color=fff&size=200`;
+  const nextSession = sessions[0];
+
+  return (
+    <div className="medix-dashboard">
+      {/* ── Top Bar Header ── */}
+      <header className="medix-header flex-between mb-4">
+        <div>
+          <h1 className="medix-greeting flex gap-2 align-center">
+            Good Morning, {doctorName} <Sparkles size={24} color="#6366f1" />
+          </h1>
+          <p className="medix-subtitle">Have a great and productive day filled with patient care success.</p>
+        </div>
+
+        <div className="medix-header-right" style={{ position: 'relative' }}>
+          <div className="medix-icon-badge" onClick={toggleDarkTheme} title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'} style={{ cursor: 'pointer' }}>
+            {isDark ? <Sun size={18} color="#f59e0b" /> : <Moon size={18} />}
+          </div>
+          <div className="medix-icon-badge" onClick={() => setShowNotif(!showNotif)} title="Notifications" style={{ cursor: 'pointer', position: 'relative' }}>
+            <Bell size={18} />
+            <span style={{ position: 'absolute', top: 6, right: 6, width: 8, height: 8, background: '#ef4444', borderRadius: '50%' }} />
+          </div>
+          <div className="medix-icon-badge" onClick={() => setShowSettings(true)} title="Practice Settings" style={{ cursor: 'pointer' }}>
+            <Settings size={18} />
+          </div>
+
+          <div className="medix-profile-pill" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
+            <img src={doctorDp} alt={doctorName} className="medix-user-dp" />
+            <div className="medix-user-meta">
+              <span className="medix-user-name">{doctorName}</span>
+              <span className="medix-user-role">Doctor / Practitioner</span>
+            </div>
+          </div>
+
+          {/* Notifications Popover */}
+          {showNotif && (
+            <div className="card" style={{ position: 'absolute', top: 50, right: 100, width: 320, zIndex: 100, padding: 16, boxShadow: 'var(--shadow-md)' }}>
+              <div className="flex-between mb-2">
+                <strong style={{ fontSize: '0.9rem' }}>Doctor Alerts & Reminders</strong>
+                <span className="text-muted" style={{ fontSize: '0.75rem', cursor: 'pointer' }} onClick={() => setShowNotif(false)}>Close</span>
+              </div>
+              <div className="flex-column gap-2">
+                <div style={{ padding: '8px 10px', background: 'var(--bg-subtle)', borderRadius: 8, fontSize: '0.8rem' }}>
+                  <strong style={{ display: 'block', color: 'var(--accent-indigo)' }}>New Client Booking 📅</strong>
+                  Rahul Verma booked a 1-on-1 session for Sept 15 at 09:00 IST.
+                </div>
+                <div style={{ padding: '8px 10px', background: 'var(--bg-subtle)', borderRadius: 8, fontSize: '0.8rem' }}>
+                  <strong style={{ display: 'block', color: 'var(--emerald-icon)' }}>Payout Credited 💰</strong>
+                  ₹1,470 net session payout credited to your account.
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* ── Top 4 Stat Cards (Medix Soft Pastel Pills) ── */}
+      <div className="medix-stats-grid mb-4">
+        <div className="medix-stat-card stat-purple">
+          <div className="stat-icon-wrapper"><Calendar size={22} /></div>
+          <div className="stat-info">
+            <span className="stat-label">Total Appointments</span>
+            <h2 className="stat-number">{analytics?.totalSessions || 0}</h2>
+          </div>
+        </div>
+
+        <div className="medix-stat-card stat-rose">
+          <div className="stat-icon-wrapper"><FileText size={22} /></div>
+          <div className="stat-info">
+            <span className="stat-label">Total Notes & Reports</span>
+            <h2 className="stat-number">27</h2>
+          </div>
+        </div>
+
+        <div className="medix-stat-card stat-amber">
+          <div className="stat-icon-wrapper"><IndianRupee size={22} /></div>
+          <div className="stat-info">
+            <span className="stat-label">Total Revenue</span>
+            <h2 className="stat-number">₹{(analytics?.totalRevenue || 0).toLocaleString('en-IN')}</h2>
+          </div>
+        </div>
+
+        <div className="medix-stat-card stat-emerald">
+          <div className="stat-icon-wrapper"><Users size={22} /></div>
+          <div className="stat-info">
+            <span className="stat-label">Active Clients</span>
+            <h2 className="stat-number">{analytics?.activeClients || 0}</h2>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Layout: 2 Columns ── */}
+      <div className="medix-main-grid">
+        
+        {/* LEFT COLUMN: Patient Activity & Today's Patients */}
+        <div className="medix-col-left">
+          
+          {/* Patient Weekly Activity Chart Card */}
+          <div className="card mb-4">
+            <div className="flex-between mb-3">
+              <div>
+                <h3 className="card-title flex gap-2" style={{ margin: 0 }}><Activity size={18} /> Your Patients Overview</h3>
+                <p className="text-muted" style={{ fontSize: '0.8rem' }}>Weekly patient consultation trends</p>
+              </div>
+              <span className="badge badge-primary">This Week</span>
+            </div>
+            <div className="chart-placeholder-bar">
+              <div className="chart-bar-item" style={{ height: '40%' }}><span>Sun</span></div>
+              <div className="chart-bar-item" style={{ height: '60%' }}><span>Mon</span></div>
+              <div className="chart-bar-item" style={{ height: '85%' }}><span>Tue</span></div>
+              <div className="chart-bar-item" style={{ height: '50%' }}><span>Wed</span></div>
+              <div className="chart-bar-item active" style={{ height: '95%' }}><span>Thu</span></div>
+              <div className="chart-bar-item" style={{ height: '70%' }}><span>Fri</span></div>
+              <div className="chart-bar-item" style={{ height: '45%' }}><span>Sat</span></div>
+            </div>
+          </div>
+
+          {/* Today's Patients List Card */}
+          <div className="card">
+            <div className="flex-between mb-4">
+              <h3 className="card-title flex gap-2" style={{ margin: 0 }}><Users size={18} /> Your Patients Today</h3>
+              <Link to="/schedule" className="btn btn-secondary btn-sm flex gap-1">View All Schedule <ChevronRight size={14} /></Link>
+            </div>
+
+            {sessions.length === 0 ? (
+              <div className="empty-state text-center" style={{ padding: 40 }}>
+                <Inbox size={36} color="var(--text-muted)" style={{ margin: '0 auto 12px' }} />
+                <p className="text-muted">No client sessions scheduled for today.</p>
+              </div>
+            ) : (
+              <div className="medix-patients-list">
+                {sessions.map(session => {
+                  const clientName = session.client_id?.name || 'Rahul Verma';
+                  const clientDp = `https://ui-avatars.com/api/?name=${encodeURIComponent(clientName)}&background=3b82f6&color=fff&size=100`;
+                  const callUrl = session.meetingLink || `https://meet.jit.si/Unfazed-Session-${session._id}`;
+                  const timeStr = new Date(session.startTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+                  return (
+                    <div key={session._id} className="patient-list-item flex-between">
+                      <div className="patient-meta">
+                        <img src={clientDp} alt={clientName} className="patient-dp" />
+                        <div>
+                          <h4 className="patient-name">{clientName}</h4>
+                          <span className="patient-concern">Diagnosis: Anxiety & Stress</span>
+                        </div>
+                      </div>
+
+                      <div className="patient-time-box">
+                        <span className="patient-time flex gap-1"><Clock size={14} /> {timeStr}</span>
+                        <a
+                          href={callUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn-navy-pill-sm flex gap-1"
+                        >
+                          <Video size={14} /> Join Video Call
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* RIGHT COLUMN: Mini Calendar & Patient Spotlight */}
+        <div className="medix-col-right">
+          
+          {/* Mini Calendar Picker */}
+          <div className="card mb-4 calendar-mini-card">
+            <div className="flex-between mb-3">
+              <h3 className="card-title flex gap-2" style={{ margin: 0 }}><Calendar size={18} />Calendar</h3>
+              <div className="flex gap-2 align-center">
+                <span className="text-muted" style={{ fontSize: '0.8rem', fontWeight: 600 }}>June 2026</span>
+                <div className="flex gap-1">
+                  <button className="header-icon-btn" style={{ width: 24, height: 24 }} onClick={() => setCalDay(prev => Math.max(1, prev - 1))} title="Previous Day"><ChevronLeft size={14} /></button>
+                  <button className="header-icon-btn" style={{ width: 24, height: 24 }} onClick={() => setCalDay(prev => Math.min(30, prev + 1))} title="Next Day"><ChevronRight size={14} /></button>
+                </div>
+              </div>
+            </div>
+            <div className="mini-calendar-days">
+              {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => <span key={d} className="mini-head">{d}</span>)}
+              {Array.from({ length: 30 }, (_, i) => i + 1).map(day => {
+                const isSelected = calDay === day;
+                const hasSession = day === 4 || day === 12 || day === 15 || day === 22;
+                return (
+                  <div
+                    key={day}
+                    className={`mini-date ${isSelected ? 'active' : ''}`}
+                    onClick={() => setCalDay(day)}
+                    title={`June ${day}, 2026 ${hasSession ? '• Session Scheduled' : ''}`}
+                  >
+                    {day < 10 ? '0' + day : day}
+                    {hasSession && !isSelected && <span className="mini-dot" />}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Upcoming Patient Spotlight Card */}
+          <div className="card spotlight-card">
+            <span className="spotlight-badge flex gap-1"><UserCheck size={12} /> Next Appointment Spotlight</span>
+            
+            {nextSession ? (
+              <div className="spotlight-content text-center mt-3">
+                <img
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(nextSession.client_id?.name || 'Client')}&background=6366f1&color=fff&size=200`}
+                  alt="Client Spotlight"
+                  className="spotlight-dp"
+                />
+                <h3 className="spotlight-name">{nextSession.client_id?.name || 'Rahul Verma'}</h3>
+                <span className="badge badge-primary mt-1">Anxiety & CBT Support</span>
+                
+                <div className="spotlight-info-box mt-3" style={{ textAlign: 'left' }}>
+                  <p className="flex gap-1.5 align-center mb-1"><Calendar size={14} color="var(--accent-indigo)" /> Date: <strong>{new Date(nextSession.startTime).toLocaleDateString('en-IN')}</strong></p>
+                  <p className="flex gap-1.5 align-center mb-1"><Clock size={14} color="var(--accent-indigo)" /> Time: <strong>{new Date(nextSession.startTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</strong></p>
+                  <p className="flex gap-1.5 align-center"><Clock size={14} color="var(--emerald-icon)" /> Duration: <strong>{nextSession.duration} Minutes</strong></p>
+                </div>
+
+                <a
+                  href={nextSession.meetingLink || `https://meet.jit.si/Unfazed-Session-${nextSession._id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-navy-full mt-4 flex-center gap-2"
+                  style={{ textDecoration: 'none', display: 'flex' }}
+                >
+                  <Video size={18} /> Join 1-on-1 Video Session
+                </a>
+              </div>
+            ) : (
+              <div className="text-center" style={{ padding: '30px 10px' }}>
+                <UserCheck size={36} color="var(--text-muted)" style={{ margin: '0 auto 10px' }} />
+                <p className="text-muted">No upcoming appointments scheduled today.</p>
+              </div>
+            )}
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 480 }}>
+            <div className="flex-between mb-3">
+              <h3 className="flex gap-2 align-center" style={{ margin: 0, fontSize: '1.2rem' }}>
+                <Settings size={20} color="var(--accent-indigo)" /> Practice Settings
+              </h3>
+              <button className="header-icon-btn" onClick={() => setShowSettings(false)}><X size={18} /></button>
+            </div>
+            <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: 20 }}>
+              Manage your practitioner preferences, notifications, and profile details.
+            </p>
+
+            <div className="flex-column gap-3 mb-4">
+              <div className="card flex-between" style={{ padding: 14, cursor: 'pointer' }} onClick={() => { setShowSettings(false); navigate('/profile'); }}>
+                <div>
+                  <strong style={{ fontSize: '0.9rem', display: 'block' }}>Edit Practitioner Profile</strong>
+                  <span className="text-muted" style={{ fontSize: '0.78rem' }}>Update bio, specializations & DP</span>
+                </div>
+                <ChevronRight size={18} color="var(--text-muted)" />
+              </div>
+
+              <div className="card flex-between" style={{ padding: 14, cursor: 'pointer' }} onClick={() => { setShowSettings(false); navigate('/schedule'); }}>
+                <div>
+                  <strong style={{ fontSize: '0.9rem', display: 'block' }}>Manage Session Availability</strong>
+                  <span className="text-muted" style={{ fontSize: '0.78rem' }}>Configure weekly hours & buffer time</span>
+                </div>
+                <ChevronRight size={18} color="var(--text-muted)" />
+              </div>
+
+              <div className="card flex-between" style={{ padding: 14 }}>
+                <div>
+                  <strong style={{ fontSize: '0.9rem', display: 'block' }}>Dark Theme Mode</strong>
+                  <span className="text-muted" style={{ fontSize: '0.78rem' }}>Toggle light / dark visual appearance</span>
+                </div>
+                <button className="btn btn-secondary btn-sm" onClick={toggleDarkTheme}>
+                  {isDark ? 'Light' : 'Dark'}
+                </button>
+              </div>
+            </div>
+
+            <button className="btn btn-primary w-full" onClick={() => setShowSettings(false)}>
+              Close Settings
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Dashboard;
