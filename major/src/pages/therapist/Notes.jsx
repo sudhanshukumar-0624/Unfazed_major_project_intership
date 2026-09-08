@@ -2,10 +2,30 @@ import { useEffect, useState } from 'react';
 import { FileText, Plus, Lock, Unlock, Trash2, X, User } from 'lucide-react';
 import api from '../../api/axiosInstance';
 
+const DEFAULT_NOTES_LIST = [
+  {
+    _id: 'note-demo-1',
+    clientId: 'client-demo-1',
+    type: 'private',
+    content: 'Client reports improved sleep patterns following mindfulness exercises. Progressing well with cognitive behavioral goals.',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    _id: 'note-demo-2',
+    clientId: 'client-demo-2',
+    type: 'shared',
+    content: 'Discussed work-life balance boundaries. Recommended 15-minute daily breathing routines.',
+    createdAt: new Date().toISOString(),
+  }
+];
+
 const Notes = () => {
-  const [notes, setNotes] = useState([]);
-  const [clients, setClients] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState(DEFAULT_NOTES_LIST);
+  const [clients, setClients] = useState([
+    { _id: 'client-demo-1', name: 'Aarav Mehta' },
+    { _id: 'client-demo-2', name: 'Ananya Sharma' },
+  ]);
+  const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ clientId: '', type: 'private', content: '', template: 'none' });
   const [filter, setFilter] = useState({ clientId: '', type: '' });
@@ -16,14 +36,18 @@ const Notes = () => {
       const params = {};
       if (filter.clientId) params.clientId = filter.clientId;
       if (filter.type) params.type = filter.type;
-      const { data } = await api.get('/notes', { params });
-      setNotes(data);
+      const { data } = await api.get('/notes', { params, timeout: 3500 });
+      if (Array.isArray(data) && data.length > 0) {
+        setNotes(data);
+      }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
 
   useEffect(() => {
-    api.get('/clients').then(r => setClients(r.data)).catch(console.error);
+    api.get('/clients', { timeout: 3500 }).then(r => {
+      if (Array.isArray(r.data) && r.data.length > 0) setClients(r.data);
+    }).catch(console.error);
   }, []);
 
   useEffect(() => { fetchNotes(); }, [filter]);

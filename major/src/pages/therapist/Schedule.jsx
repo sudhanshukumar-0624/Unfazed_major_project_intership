@@ -2,10 +2,34 @@ import { useEffect, useState } from 'react';
 import { Calendar, Clock, Video, Bell, Check, Phone, Save, Inbox } from 'lucide-react';
 import api from '../../api/axiosInstance';
 
+const DEFAULT_SCHEDULE_SESSIONS = [
+  {
+    _id: 'sess-sch-1',
+    client: { name: 'Aarav Mehta', email: 'aarav@demo.com', phone: '+91 98765 43210' },
+    startTime: new Date(Date.now() + 86400000).toISOString(),
+    status: 'scheduled',
+    meetingLink: 'https://meet.jit.si/Unfazed-Session-Aarav',
+  },
+  {
+    _id: 'sess-sch-2',
+    client: { name: 'Ananya Sharma', email: 'ananya@demo.com', phone: '+91 98123 45678' },
+    startTime: new Date(Date.now() + 172800000).toISOString(),
+    status: 'scheduled',
+    meetingLink: 'https://meet.jit.si/Unfazed-Session-Ananya',
+  },
+  {
+    _id: 'sess-sch-3',
+    client: { name: 'Rohan Verma', email: 'rohan@demo.com', phone: '+91 99887 76655' },
+    startTime: new Date(Date.now() - 86400000).toISOString(),
+    status: 'completed',
+    meetingLink: 'https://meet.jit.si/Unfazed-Session-Rohan',
+  }
+];
+
 const Schedule = () => {
-  const [sessions, setSessions] = useState([]);
+  const [sessions, setSessions] = useState(DEFAULT_SCHEDULE_SESSIONS);
   const [availability, setAvailability] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('sessions');
   const [avForm, setAvForm] = useState({ bufferTime: 10, sessionDurations: [50], timezone: 'Asia/Kolkata' });
   const [saving, setSaving] = useState(false);
@@ -18,10 +42,12 @@ const Schedule = () => {
     const fetchData = async () => {
       try {
         const [sessRes, avRes] = await Promise.all([
-          api.get('/scheduling/sessions'),
-          api.get('/scheduling/availability'),
+          api.get('/scheduling/sessions', { timeout: 3500 }),
+          api.get('/scheduling/availability', { timeout: 3500 }),
         ]);
-        setSessions(sessRes.data);
+        if (Array.isArray(sessRes.data) && sessRes.data.length > 0) {
+          setSessions(sessRes.data);
+        }
         if (avRes.data && avRes.data._id) setAvailability(avRes.data);
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
@@ -53,8 +79,6 @@ const Schedule = () => {
   };
 
   const existingDay = (dayIndex) => availability?.weeklyTemplate?.find(t => t.dayOfWeek === dayIndex);
-
-  if (loading) return <div className="loading-screen"><div className="spinner" /></div>;
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>

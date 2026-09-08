@@ -61,9 +61,9 @@ const DEFAULT_DOCTORS = [
 ];
 
 const DoctorsDirectory = () => {
-  const [doctors, setDoctors] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [doctors, setDoctors] = useState(DEFAULT_DOCTORS);
+  const [loading, setLoading] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState(DEFAULT_DOCTORS[0]);
   
   // Active Sidebar Navigation Tab ('directory', 'consultations', 'support', 'privacy')
   const [activeTab, setActiveTab] = useState('directory');
@@ -96,7 +96,7 @@ const DoctorsDirectory = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/therapist/directory/all')
+    api.get('/therapist/directory/all', { timeout: 3500 })
       .then(r => {
         const rawDocs = (Array.isArray(r.data) && r.data.length > 0) ? r.data : DEFAULT_DOCTORS;
         // Deduplicate doctors by name
@@ -108,12 +108,10 @@ const DoctorsDirectory = () => {
           return acc;
         }, []);
         setDoctors(uniqueDocs);
-        setSelectedDoctor(uniqueDocs[0]);
+        if (!selectedDoctor) setSelectedDoctor(uniqueDocs[0]);
       })
       .catch(err => {
         console.error('Failed to load therapists, using defaults:', err);
-        setDoctors(DEFAULT_DOCTORS);
-        setSelectedDoctor(DEFAULT_DOCTORS[0]);
       })
       .finally(() => setLoading(false));
   }, []);

@@ -5,9 +5,39 @@ import './Clients.css';
 
 const statusColors = { active: 'badge-emerald', inactive: 'badge-neutral', waitlist: 'badge-amber' };
 
+const DEFAULT_CLIENT_LIST = [
+  {
+    _id: 'client-demo-1',
+    name: 'Aarav Mehta',
+    email: 'aarav@demo.com',
+    phone: '+91 98765 43210',
+    status: 'active',
+    presentingConcern: 'Anxiety, Workplace Stress',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    _id: 'client-demo-2',
+    name: 'Ananya Sharma',
+    email: 'ananya@demo.com',
+    phone: '+91 98123 45678',
+    status: 'active',
+    presentingConcern: 'Sleep Disorders, Burnout',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    _id: 'client-demo-3',
+    name: 'Rohan Verma',
+    email: 'rohan@demo.com',
+    phone: '+91 99887 76655',
+    status: 'active',
+    presentingConcern: 'Mild Depression, Life Coaching',
+    createdAt: new Date().toISOString(),
+  }
+];
+
 const Clients = () => {
-  const [clients, setClients] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [clients, setClients] = useState(DEFAULT_CLIENT_LIST);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -20,8 +50,10 @@ const Clients = () => {
       const params = {};
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
-      const { data } = await api.get('/clients', { params });
-      setClients(data);
+      const { data } = await api.get('/clients', { params, timeout: 3500 });
+      if (Array.isArray(data) && data.length > 0) {
+        setClients(data);
+      }
     } catch (err) {
       console.error(err);
     } finally {
