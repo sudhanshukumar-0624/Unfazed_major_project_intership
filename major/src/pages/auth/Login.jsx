@@ -2,50 +2,15 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../context/AuthContext';
-import { Stethoscope, User, Key, CheckCircle2, ShieldCheck, Sparkles } from 'lucide-react';
+import { ShieldCheck, Stethoscope } from 'lucide-react';
 import './Auth.css';
-
-const PRESET_ACCOUNTS = [
-  {
-    roleLabel: '🩺 Doctor (Priya)',
-    name: 'Dr. Priya Sharma',
-    email: 'dr.priya@unfazed.com',
-    password: 'doctor123',
-    targetRole: 'doctor',
-    avatar: 'https://images.unsplash.com/photo-1594824813566-78a0d922b910?w=100&auto=format&fit=crop&q=80',
-  },
-  {
-    roleLabel: '🩺 Doctor (Marcus)',
-    name: 'Dr. Marcus Vance',
-    email: 'dr.marcus@unfazed.com',
-    password: 'doctor123',
-    targetRole: 'doctor',
-    avatar: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=100&auto=format&fit=crop&q=80',
-  },
-  {
-    roleLabel: '🩺 Doctor (Sarah)',
-    name: 'Dr. Sarah Jenkins',
-    email: 'dr.sarah@unfazed.com',
-    password: 'doctor123',
-    targetRole: 'doctor',
-    avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100&auto=format&fit=crop&q=80',
-  },
-  {
-    roleLabel: '👤 Client Access',
-    name: 'Client Portal User',
-    email: 'client@unfazed.com',
-    password: 'client123',
-    targetRole: 'client',
-    avatar: 'https://ui-avatars.com/api/?name=Client+User&background=10b981&color=fff',
-  },
-];
 
 const Login = () => {
   const { login, googleLogin } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm();
 
   const onSubmit = async (data) => {
     setLoading(true); setError('');
@@ -57,16 +22,10 @@ const Login = () => {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickLogin = (preset) => {
-    setValue('email', preset.email);
-    setValue('password', preset.password);
-    onSubmit({ email: preset.email, password: preset.password });
   };
 
   const handleGoogleSignIn = async () => {
@@ -105,7 +64,7 @@ const Login = () => {
       } else {
         const user = await googleLogin({
           name: 'Dr. Priya Sharma',
-          email: 'priya.google@unfazed.com',
+          email: 'doctor@unfazed.com',
           googleId: 'google-oauth-priya-' + Date.now(),
           profilePic: 'https://images.unsplash.com/photo-1594824813566-78a0d922b910?w=300&auto=format&fit=crop&q=80',
         });
@@ -129,42 +88,15 @@ const Login = () => {
         <div className="auth-orb orb2" />
       </div>
 
-      <div className="auth-card" style={{ maxWidth: 460 }}>
+      <div className="auth-card">
         <div className="auth-logo">
           <div className="auth-logo-icon">U</div>
           <span>Unfazed Portal</span>
         </div>
-        <h1 className="auth-title">Practitioner & Client Access</h1>
-        <p className="auth-subtitle">Select a preset account or enter your credentials to log in.</p>
+        <h1 className="auth-title">Welcome Back</h1>
+        <p className="auth-subtitle">Sign in to your Doctor Dashboard or Client account</p>
 
         {error && <div className="alert alert-error">{error}</div>}
-
-        {/* ── 1-Click Quick Preset Accounts ── */}
-        <div className="preset-quick-section mb-4">
-          <div className="flex-between mb-2">
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary-light)', textTransform: 'uppercase', letterSpacing: '0.5px' }} className="flex align-center gap-1">
-              <Sparkles size={14} /> 1-Click Quick Login
-            </span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Auto-routes by role</span>
-          </div>
-          <div className="preset-grid">
-            {PRESET_ACCOUNTS.map((preset) => (
-              <button
-                key={preset.email}
-                type="button"
-                className="btn-preset-card"
-                onClick={() => handleQuickLogin(preset)}
-                disabled={loading}
-              >
-                <img src={preset.avatar} alt={preset.name} className="preset-avatar" />
-                <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                  <div className="preset-name">{preset.name}</div>
-                  <div className="preset-role">{preset.targetRole === 'doctor' ? 'Doctor Dashboard' : 'Client View'}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
 
         <button
           type="button"
@@ -182,18 +114,18 @@ const Login = () => {
         </button>
 
         <div className="auth-divider">
-          <span>OR SIGN IN WITH EMAIL & PASSWORD</span>
+          <span>OR SIGN IN WITH USER ID</span>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-group">
-            <label className="form-label">User ID / Email</label>
+            <label className="form-label">Doctor User ID / Email</label>
             <input
               id="login-email"
               className="form-input"
               type="email"
-              placeholder="dr.priya@unfazed.com"
-              {...register('email', { required: 'Email is required' })}
+              placeholder="doctor@unfazed.com"
+              {...register('email', { required: 'Email / User ID is required' })}
             />
             {errors.email && <p className="form-error">{errors.email.message}</p>}
           </div>
@@ -211,50 +143,18 @@ const Login = () => {
           </div>
 
           <button id="login-submit" type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Authenticating...' : 'Sign In to Dashboard'}
           </button>
         </form>
 
         <p className="auth-footer">
-          Don't have an account? <Link to="/register">Create practitioner account</Link>
+          Don't have an account? <Link to="/register">Register new doctor</Link>
         </p>
 
-        {/* ── Generated Credentials Reference Table ── */}
-        <div className="preset-table-box mt-4">
-          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: 8 }} className="flex align-center gap-1.5">
-            <ShieldCheck size={16} color="var(--primary-light)" /> Preset Account Credentials List
-          </div>
-          <table className="preset-table">
-            <thead>
-              <tr>
-                <th>Account</th>
-                <th>User ID (Email)</th>
-                <th>Password</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>Dr. Priya</strong></td>
-                <td><code>dr.priya@unfazed.com</code></td>
-                <td><code>doctor123</code></td>
-              </tr>
-              <tr>
-                <td><strong>Dr. Marcus</strong></td>
-                <td><code>dr.marcus@unfazed.com</code></td>
-                <td><code>doctor123</code></td>
-              </tr>
-              <tr>
-                <td><strong>Dr. Sarah</strong></td>
-                <td><code>dr.sarah@unfazed.com</code></td>
-                <td><code>doctor123</code></td>
-              </tr>
-              <tr>
-                <td><strong>Client User</strong></td>
-                <td><code>client@unfazed.com</code></td>
-                <td><code>client123</code></td>
-              </tr>
-            </tbody>
-          </table>
+        {/* Doctor credentials info banner */}
+        <div className="demo-hint mt-3 flex-center gap-2" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
+          <Stethoscope size={16} color="var(--primary-light)" />
+          <span>Doctor Dashboard ID: <strong>doctor@unfazed.com</strong> | Pass: <strong>doctor123</strong></span>
         </div>
       </div>
     </div>
