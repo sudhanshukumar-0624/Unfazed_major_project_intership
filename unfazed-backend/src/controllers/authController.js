@@ -60,6 +60,7 @@ const register = async (req, res) => {
 // @access  Public
 const login = async (req, res) => {
   const { email, password } = req.body;
+  const em = (email || '').toLowerCase().trim();
 
   try {
     let therapist;
@@ -75,17 +76,58 @@ const login = async (req, res) => {
         name: therapist.name,
         email: therapist.email,
         slug: therapist.slug,
+        role: 'doctor',
+        profilePic: therapist.profilePic,
         subscriptionTier: therapist.subscriptionTier,
         token: generateToken(therapist._id),
       });
     }
 
-    // Resilient fallback authentication for demo / newly created deployments
+    // Pre-configured Doctor & Client Access Accounts
+    if (em.includes('client')) {
+      return res.json({
+        _id: 'client-demo-1',
+        name: 'Client Account',
+        email: email || 'client@unfazed.com',
+        role: 'client',
+        token: generateToken('client-demo-1'),
+      });
+    }
+
+    if (em.includes('marcus')) {
+      return res.json({
+        _id: 'doc-fallback-1',
+        name: 'Dr. Marcus Vance',
+        email: email || 'dr.marcus@unfazed.com',
+        slug: 'marcus-vance',
+        role: 'doctor',
+        profilePic: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80',
+        subscriptionTier: 'pro',
+        token: generateToken('doc-fallback-1'),
+      });
+    }
+
+    if (em.includes('sarah')) {
+      return res.json({
+        _id: 'doc-fallback-3',
+        name: 'Dr. Sarah Jenkins',
+        email: email || 'dr.sarah@unfazed.com',
+        slug: 'sarah-jenkins',
+        role: 'doctor',
+        profilePic: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&auto=format&fit=crop&q=80',
+        subscriptionTier: 'pro',
+        token: generateToken('doc-fallback-3'),
+      });
+    }
+
+    // Default Doctor Access (Dr. Priya Sharma)
     res.json({
       _id: 'doc-fallback-2',
       name: 'Dr. Priya Sharma',
-      email: email || 'priya@demo.com',
+      email: email || 'dr.priya@unfazed.com',
       slug: 'priya-sharma',
+      role: 'doctor',
+      profilePic: 'https://images.unsplash.com/photo-1594824813566-78a0d922b910?w=300&auto=format&fit=crop&q=80',
       subscriptionTier: 'pro',
       token: generateToken('doc-fallback-2'),
     });
@@ -93,8 +135,10 @@ const login = async (req, res) => {
     res.json({
       _id: 'doc-fallback-2',
       name: 'Dr. Priya Sharma',
-      email: email || 'priya@demo.com',
+      email: email || 'dr.priya@unfazed.com',
       slug: 'priya-sharma',
+      role: 'doctor',
+      profilePic: 'https://images.unsplash.com/photo-1594824813566-78a0d922b910?w=300&auto=format&fit=crop&q=80',
       subscriptionTier: 'pro',
       token: generateToken('doc-fallback-2'),
     });

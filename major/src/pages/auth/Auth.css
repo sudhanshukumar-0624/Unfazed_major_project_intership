@@ -84,3 +84,85 @@
   text-align: center;
 }
 .demo-hint strong { color: var(--primary-light); }
+
+/* ── Preset Accounts Grid & Table Styling ── */
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.btn-preset-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-surface, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border, #334155);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.btn-preset-card:hover {
+  background: var(--primary-soft, rgba(99, 102, 241, 0.15));
+  border-color: var(--primary, #6366f1);
+  transform: translateY(-2px);
+}
+
+.preset-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid var(--primary);
+}
+
+.preset-name {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--text-main, #f8fafc);
+  line-height: 1.2;
+}
+
+.preset-role {
+  font-size: 0.72rem;
+  color: var(--primary-light, #818cf8);
+}
+
+.preset-table-box {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border, #334155);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.preset-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+  text-align: left;
+}
+
+.preset-table th {
+  color: var(--text-muted, #94a3b8);
+  font-weight: 600;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border, #334155);
+}
+
+.preset-table td {
+  padding: 6px 0;
+  color: var(--text-main, #e2e8f0);
+}
+
+.preset-table code {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+

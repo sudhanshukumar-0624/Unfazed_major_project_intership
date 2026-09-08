@@ -24,14 +24,47 @@ export const AuthProvider = ({ children }) => {
       setTherapist(data);
       return data;
     } catch {
-      const fallbackUser = {
-        _id: 'doc-fallback-2',
-        name: email?.toLowerCase().includes('priya') ? 'Dr. Priya Sharma' : 'Doctor Practitioner',
-        email: email || 'priya@demo.com',
-        slug: 'priya-sharma',
-        role: email?.toLowerCase().includes('client') ? 'client' : 'doctor',
-        token: 'demo-token-fallback-2026',
-      };
+      const em = (email || '').toLowerCase();
+      let fallbackUser;
+      if (em.includes('client')) {
+        fallbackUser = {
+          _id: 'client-demo-1',
+          name: 'Client Account',
+          email: email || 'client@unfazed.com',
+          role: 'client',
+          token: 'demo-token-client-2026',
+        };
+      } else if (em.includes('marcus')) {
+        fallbackUser = {
+          _id: 'doc-fallback-1',
+          name: 'Dr. Marcus Vance',
+          email: email || 'dr.marcus@unfazed.com',
+          slug: 'marcus-vance',
+          role: 'doctor',
+          profilePic: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80',
+          token: 'demo-token-marcus-2026',
+        };
+      } else if (em.includes('sarah')) {
+        fallbackUser = {
+          _id: 'doc-fallback-3',
+          name: 'Dr. Sarah Jenkins',
+          email: email || 'dr.sarah@unfazed.com',
+          slug: 'sarah-jenkins',
+          role: 'doctor',
+          profilePic: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&auto=format&fit=crop&q=80',
+          token: 'demo-token-sarah-2026',
+        };
+      } else {
+        fallbackUser = {
+          _id: 'doc-fallback-2',
+          name: 'Dr. Priya Sharma',
+          email: email || 'dr.priya@unfazed.com',
+          slug: 'priya-sharma',
+          role: 'doctor',
+          profilePic: 'https://images.unsplash.com/photo-1594824813566-78a0d922b910?w=300&auto=format&fit=crop&q=80',
+          token: 'demo-token-priya-2026',
+        };
+      }
       localStorage.setItem('token', fallbackUser.token);
       localStorage.setItem('therapist', JSON.stringify(fallbackUser));
       setTherapist(fallbackUser);
