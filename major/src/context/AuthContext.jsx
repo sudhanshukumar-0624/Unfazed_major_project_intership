@@ -24,17 +24,18 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, roleHint = 'client') => {
     try {
-      const { data } = await api.post('/auth/login', { email, password }, { timeout: 3500 });
-      localStorage.setItem('token', data.token || 'demo-token');
-      localStorage.setItem('therapist', JSON.stringify(data));
-      setTherapist(data);
-      return data;
+      const { data } = await api.post('/auth/login', { email, password, role: roleHint }, { timeout: 3500 });
+      const userData = { ...data, role: data.role || roleHint };
+      localStorage.setItem('token', userData.token || 'demo-token');
+      localStorage.setItem('therapist', JSON.stringify(userData));
+      setTherapist(userData);
+      return userData;
     } catch {
       const em = (email || '').toLowerCase();
       let fallbackUser;
-      if (em.includes('client')) {
+      if (roleHint === 'client' || em.includes('client')) {
         fallbackUser = {
           _id: 'client-demo-1',
           name: 'Client Account',
@@ -106,22 +107,25 @@ export const AuthProvider = ({ children }) => {
 
   const googleLogin = async (googleData) => {
     const payload = typeof googleData === 'string'
-      ? { email: googleData, name: 'Dr. Priya Sharma', googleId: 'google-oauth-priya' }
-      : { name: 'Dr. Priya Sharma', email: 'priyasharma@unfazed.com', ...googleData };
+      ? { email: googleData, name: 'Client Account', googleId: 'google-oauth-client', role: 'client' }
+      : { name: 'Dr. Priya Sharma', email: 'priyasharma@unfazed.com', role: 'doctor', ...googleData };
 
     try {
       const { data } = await api.post('/auth/google', payload, { timeout: 3500 });
-      localStorage.setItem('token', data.token || 'google-demo-token');
-      localStorage.setItem('therapist', JSON.stringify(data));
-      setTherapist(data);
-      return data;
+      const userRole = data.role || payload.role || 'client';
+      const userData = { ...data, role: userRole };
+      localStorage.setItem('token', userData.token || 'google-demo-token');
+      localStorage.setItem('therapist', JSON.stringify(userData));
+      setTherapist(userData);
+      return userData;
     } catch {
+      const isClient = payload.role === 'client' || (payload.email && payload.email.includes('client'));
       const fallbackUser = {
-        _id: 'doc-fallback-2',
-        name: payload.name || 'Dr. Priya Sharma',
-        email: payload.email || 'priyasharma@unfazed.com',
-        slug: 'priya-sharma',
-        role: 'doctor',
+        _id: isClient ? 'client-google-demo' : 'doc-fallback-2',
+        name: payload.name || (isClient ? 'Client Account' : 'Dr. Priya Sharma'),
+        email: payload.email || (isClient ? 'client@unfazed.com' : 'priyasharma@unfazed.com'),
+        slug: isClient ? 'client' : 'priya-sharma',
+        role: isClient ? 'client' : 'doctor',
         token: 'google-demo-token-2026',
       };
       localStorage.setItem('token', fallbackUser.token);

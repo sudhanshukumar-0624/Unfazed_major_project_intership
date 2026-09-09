@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../context/AuthContext';
-import { ShieldCheck, Stethoscope } from 'lucide-react';
+import { User, Stethoscope, ShieldCheck } from 'lucide-react';
 import './Auth.css';
 
 const Login = () => {
   const { login, googleLogin } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('role') === 'doctor' ? 'doctor' : 'client';
+  
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm();
@@ -15,8 +19,8 @@ const Login = () => {
   const onSubmit = async (data) => {
     setLoading(true); setError('');
     try {
-      const user = await login(data.email, data.password);
-      if (user?.role === 'client' || data.email.toLowerCase().includes('client')) {
+      const user = await login(data.email, data.password, activeTab);
+      if (activeTab === 'client' || user?.role === 'client' || data.email.toLowerCase().includes('client')) {
         navigate('/');
       } else {
         navigate('/dashboard');
@@ -30,49 +34,17 @@ const Login = () => {
 
   const handleGoogleSignIn = async () => {
     setLoading(true); setError('');
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
     try {
-      if (clientId && window.google?.accounts?.id) {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: async (response) => {
-            try {
-              const base64Url = response.credential.split('.')[1];
-              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-              const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
-              const payload = JSON.parse(jsonPayload);
-
-              const user = await googleLogin({
-                name: payload.name,
-                email: payload.email,
-                googleId: payload.sub,
-                profilePic: payload.picture,
-              });
-
-              if (user?.role === 'client' || payload.email.toLowerCase().includes('client')) {
-                navigate('/');
-              } else {
-                navigate('/dashboard');
-              }
-            } catch (e) {
-              setError('Google OAuth verification failed.');
-            }
-          }
-        });
-        window.google.accounts.id.prompt();
+      const user = await googleLogin({
+        name: activeTab === 'client' ? 'Client Account' : 'Dr. Priya Sharma',
+        email: activeTab === 'client' ? 'client@unfazed.com' : 'dr.priya@unfazed.com',
+        googleId: 'google-oauth-' + activeTab + '-' + Date.now(),
+        role: activeTab,
+      });
+      if (activeTab === 'client' || user?.role === 'client') {
+        navigate('/');
       } else {
-        const user = await googleLogin({
-          name: 'Dr. Priya Sharma',
-          email: 'doctor@unfazed.com',
-          googleId: 'google-oauth-priya-' + Date.now(),
-          profilePic: 'https://images.unsplash.com/photo-1594824813566-78a0d922b910?w=300&auto=format&fit=crop&q=80',
-        });
-        if (user?.role === 'client') {
-          navigate('/');
-        } else {
-          navigate('/dashboard');
-        }
+        navigate('/dashboard');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Google Sign-In failed.');
@@ -93,10 +65,34 @@ const Login = () => {
           <div className="auth-logo-icon">U</div>
           <span>Unfazed Portal</span>
         </div>
-        <h1 className="auth-title">Welcome Back</h1>
-        <p className="auth-subtitle">Sign in to your Doctor Dashboard or Client account</p>
+        <h1 className="auth-title">{activeTab === 'client' ? 'Client Portal Sign In' : 'Doctor Dashboard Sign In'}</h1>
+        <p className="auth-subtitle">
+          {activeTab === 'client'
+            ? 'Access your appointment history & consultations'
+            : 'Access your practitioner dashboard & schedules'}
+        </p>
 
         {error && <div className="alert alert-error">{error}</div>}
+
+        {/* ── Client vs Doctor Account Switcher ── */}
+        <div className="flex gap-2 mb-4" style={{ background: 'var(--bg-subtle, #1e293b)', padding: 4, borderRadius: 12 }}>
+          <button
+            type="button"
+            className={`btn w-full flex-center gap-1.5 ${activeTab === 'client' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ fontSize: '0.85rem', padding: '10px 12px' }}
+            onClick={() => { setActiveTab('client'); setError(''); }}
+          >
+            <User size={16} /> Client Sign In
+          </button>
+          <button
+            type="button"
+            className={`btn w-full flex-center gap-1.5 ${activeTab === 'doctor' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ fontSize: '0.85rem', padding: '10px 12px' }}
+            onClick={() => { setActiveTab('doctor'); setError(''); }}
+          >
+            <Stethoscope size={16} /> Doctor Sign In
+          </button>
+        </div>
 
         <button
           type="button"
@@ -119,12 +115,12 @@ const Login = () => {
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-group">
-            <label className="form-label">Doctor User ID / Email</label>
+            <label className="form-label">{activeTab === 'client' ? 'Client User ID / Email' : 'Doctor User ID / Email'}</label>
             <input
               id="login-email"
               className="form-input"
               type="email"
-              placeholder="doctor@unfazed.com"
+              placeholder={activeTab === 'client' ? 'client@unfazed.com' : 'dr.priya@unfazed.com'}
               {...register('email', { required: 'Email / User ID is required' })}
             />
             {errors.email && <p className="form-error">{errors.email.message}</p>}
@@ -143,18 +139,30 @@ const Login = () => {
           </div>
 
           <button id="login-submit" type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
-            {loading ? 'Authenticating...' : 'Sign In to Dashboard'}
+            {loading ? 'Authenticating...' : (activeTab === 'client' ? 'Sign In to Client Portal' : 'Sign In to Doctor Dashboard')}
           </button>
         </form>
 
         <p className="auth-footer">
-          Don't have an account? <Link to="/register">Register new doctor</Link>
+          Don't have an account?{' '}
+          <Link to={`/register?role=${activeTab}`}>
+            {activeTab === 'client' ? 'Register new Client Account' : 'Register new Doctor Account'}
+          </Link>
         </p>
 
-        {/* Doctor credentials info banner */}
+        {/* Dynamic Credentials Info Banner */}
         <div className="demo-hint mt-3 flex-center gap-2" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
-          <Stethoscope size={16} color="var(--primary-light)" />
-          <span>Doctor Dashboard ID: <strong>doctor@unfazed.com</strong> | Pass: <strong>doctor123</strong></span>
+          {activeTab === 'client' ? (
+            <>
+              <User size={16} color="var(--emerald-icon, #10b981)" />
+              <span>Client Login ID: <strong>client@unfazed.com</strong> | Pass: <strong>client123</strong></span>
+            </>
+          ) : (
+            <>
+              <Stethoscope size={16} color="var(--primary-light, #6366f1)" />
+              <span>Doctor IDs: <strong>dr.priya@unfazed.com</strong> / <strong>dr.marcus@unfazed.com</strong> | Pass: <strong>doctor123</strong></span>
+            </>
+          )}
         </div>
       </div>
     </div>
