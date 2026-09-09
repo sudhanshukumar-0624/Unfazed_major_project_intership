@@ -99,8 +99,16 @@ const DoctorsDirectory = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('client_appointments') || '[]');
-    if (stored.length === 0) {
+    let stored = [];
+    try {
+      const raw = localStorage.getItem('client_appointments');
+      if (raw && raw !== 'undefined' && raw !== 'null') {
+        stored = JSON.parse(raw);
+      }
+    } catch (e) {
+      stored = [];
+    }
+    if (!Array.isArray(stored) || stored.length === 0) {
       setClientAppointments([
         {
           _id: 'session-demo-default',

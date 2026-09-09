@@ -8,10 +8,18 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem('therapist');
-    const token = localStorage.getItem('token');
-    if (stored && token) {
-      setTherapist(JSON.parse(stored));
+    try {
+      const stored = localStorage.getItem('therapist');
+      const token = localStorage.getItem('token');
+      if (stored && token && stored !== 'undefined' && stored !== 'null') {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === 'object') {
+          setTherapist(parsed);
+        }
+      }
+    } catch (e) {
+      localStorage.removeItem('therapist');
+      localStorage.removeItem('token');
     }
     setLoading(false);
   }, []);
