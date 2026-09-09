@@ -24,54 +24,50 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email, password, roleHint = 'client') => {
+  const login = async (email, password) => {
+    const em = (email || '').toLowerCase().trim();
+    const isDocEmail = em.includes('dr.') || em.includes('doctor') || em.includes('priya') || em.includes('marcus') || em.includes('sarah');
     try {
-      const { data } = await api.post('/auth/login', { email, password, role: roleHint }, { timeout: 3500 });
-      const userData = { ...data, role: data.role || roleHint };
+      const { data } = await api.post('/auth/login', { email, password }, { timeout: 3500 });
+      const role = data.role || (isDocEmail ? 'doctor' : 'client');
+      const userData = { ...data, role };
       localStorage.setItem('token', userData.token || 'demo-token');
       localStorage.setItem('therapist', JSON.stringify(userData));
       setTherapist(userData);
       return userData;
     } catch {
-      const em = (email || '').toLowerCase();
       let fallbackUser;
-      if (roleHint === 'client' || em.includes('client')) {
+      if (isDocEmail) {
+        let name = 'Dr. Priya Sharma';
+        let slug = 'priya-sharma';
+        let profilePic = 'https://images.unsplash.com/photo-1594824813566-78a0d922b910?w=300&auto=format&fit=crop&q=80';
+
+        if (em.includes('marcus')) {
+          name = 'Dr. Marcus Vance';
+          slug = 'marcus-vance';
+          profilePic = 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80';
+        } else if (em.includes('sarah')) {
+          name = 'Dr. Sarah Jenkins';
+          slug = 'sarah-jenkins';
+          profilePic = 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&auto=format&fit=crop&q=80';
+        }
+
+        fallbackUser = {
+          _id: 'doc-' + slug,
+          name,
+          email: email || 'dr.priya@unfazed.com',
+          slug,
+          role: 'doctor',
+          profilePic,
+          token: 'demo-token-doctor-2026',
+        };
+      } else {
         fallbackUser = {
           _id: 'client-demo-1',
           name: 'Client Account',
           email: email || 'client@unfazed.com',
           role: 'client',
           token: 'demo-token-client-2026',
-        };
-      } else if (em.includes('marcus')) {
-        fallbackUser = {
-          _id: 'doc-fallback-1',
-          name: 'Dr. Marcus Vance',
-          email: email || 'dr.marcus@unfazed.com',
-          slug: 'marcus-vance',
-          role: 'doctor',
-          profilePic: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&auto=format&fit=crop&q=80',
-          token: 'demo-token-marcus-2026',
-        };
-      } else if (em.includes('sarah')) {
-        fallbackUser = {
-          _id: 'doc-fallback-3',
-          name: 'Dr. Sarah Jenkins',
-          email: email || 'dr.sarah@unfazed.com',
-          slug: 'sarah-jenkins',
-          role: 'doctor',
-          profilePic: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&auto=format&fit=crop&q=80',
-          token: 'demo-token-sarah-2026',
-        };
-      } else {
-        fallbackUser = {
-          _id: 'doc-fallback-2',
-          name: 'Dr. Priya Sharma',
-          email: email || 'dr.priya@unfazed.com',
-          slug: 'priya-sharma',
-          role: 'doctor',
-          profilePic: 'https://images.unsplash.com/photo-1594824813566-78a0d922b910?w=300&auto=format&fit=crop&q=80',
-          token: 'demo-token-priya-2026',
         };
       }
       localStorage.setItem('token', fallbackUser.token);
@@ -107,25 +103,27 @@ export const AuthProvider = ({ children }) => {
 
   const googleLogin = async (googleData) => {
     const payload = typeof googleData === 'string'
-      ? { email: googleData, name: 'Client Account', googleId: 'google-oauth-client', role: 'client' }
-      : { name: 'Dr. Priya Sharma', email: 'priyasharma@unfazed.com', role: 'doctor', ...googleData };
+      ? { email: googleData, name: 'User Account', googleId: 'google-oauth' }
+      : { name: 'User Account', email: 'user@unfazed.com', ...googleData };
+
+    const em = (payload.email || '').toLowerCase();
+    const isDoc = em.includes('dr.') || em.includes('doctor') || em.includes('priya') || em.includes('marcus') || em.includes('sarah');
 
     try {
       const { data } = await api.post('/auth/google', payload, { timeout: 3500 });
-      const userRole = data.role || payload.role || 'client';
+      const userRole = data.role || (isDoc ? 'doctor' : 'client');
       const userData = { ...data, role: userRole };
       localStorage.setItem('token', userData.token || 'google-demo-token');
       localStorage.setItem('therapist', JSON.stringify(userData));
       setTherapist(userData);
       return userData;
     } catch {
-      const isClient = payload.role === 'client' || (payload.email && payload.email.includes('client'));
       const fallbackUser = {
-        _id: isClient ? 'client-google-demo' : 'doc-fallback-2',
-        name: payload.name || (isClient ? 'Client Account' : 'Dr. Priya Sharma'),
-        email: payload.email || (isClient ? 'client@unfazed.com' : 'priyasharma@unfazed.com'),
-        slug: isClient ? 'client' : 'priya-sharma',
-        role: isClient ? 'client' : 'doctor',
+        _id: isDoc ? 'doc-google-demo' : 'client-google-demo',
+        name: payload.name || (isDoc ? 'Dr. Priya Sharma' : 'Client Account'),
+        email: payload.email || (isDoc ? 'client@unfazed.com' : 'client@unfazed.com'),
+        slug: isDoc ? 'priya-sharma' : 'client',
+        role: isDoc ? 'doctor' : 'client',
         token: 'google-demo-token-2026',
       };
       localStorage.setItem('token', fallbackUser.token);
