@@ -1,30 +1,23 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../context/AuthContext';
-import { User, Stethoscope } from 'lucide-react';
 import './Auth.css';
 
 const Register = () => {
   const { register: registerAuth, googleLogin } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const initialRole = searchParams.get('role') === 'client' ? 'client' : 'client';
-  
-  const [role, setRole] = useState(initialRole);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm();
 
   const onSubmit = async (data) => {
-    setLoading(true); setError('');
+    setLoading(true);
+    setError('');
     try {
-      const user = await registerAuth(data.name, data.email, data.password, role);
-      if (role === 'client' || user?.role === 'client') {
-        navigate('/');
-      } else {
-        navigate('/dashboard');
-      }
+      // Public self-registration is strictly for Client Accounts
+      const user = await registerAuth(data.name, data.email, data.password, 'client');
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
@@ -33,19 +26,16 @@ const Register = () => {
   };
 
   const handleGoogleSignUp = async () => {
-    setLoading(true); setError('');
+    setLoading(true);
+    setError('');
     try {
       const user = await googleLogin({
-        name: role === 'client' ? 'Client User' : 'New Doctor Practitioner',
-        email: `${role}.${Date.now()}@unfazed.com`,
+        name: 'Client User',
+        email: `client.${Date.now()}@unfazed.com`,
         googleId: 'google-oauth-reg-' + Date.now(),
-        role,
+        role: 'client',
       });
-      if (role === 'client' || user?.role === 'client') {
-        navigate('/');
-      } else {
-        navigate('/dashboard');
-      }
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Google Sign-Up failed.');
     } finally {
@@ -65,30 +55,10 @@ const Register = () => {
           <div className="auth-logo-icon">U</div>
           <span>Unfazed Portal</span>
         </div>
-        <h1 className="auth-title">Create Account</h1>
-        <p className="auth-subtitle">Register as a Client or Doctor Practitioner</p>
+        <h1 className="auth-title">Create Client Account</h1>
+        <p className="auth-subtitle">Sign up to book sessions and track consultation history</p>
 
         {error && <div className="alert alert-error">{error}</div>}
-
-        {/* ── Role Selector ── */}
-        <div className="flex gap-2 mb-4" style={{ background: 'var(--bg-subtle, #1e293b)', padding: 4, borderRadius: 12 }}>
-          <button
-            type="button"
-            className={`btn w-full flex-center gap-1.5 ${role === 'client' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ fontSize: '0.85rem', padding: '8px 12px' }}
-            onClick={() => setRole('client')}
-          >
-            <User size={16} /> Client Account
-          </button>
-          <button
-            type="button"
-            className={`btn w-full flex-center gap-1.5 ${role === 'doctor' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ fontSize: '0.85rem', padding: '8px 12px' }}
-            onClick={() => setRole('doctor')}
-          >
-            <Stethoscope size={16} /> Doctor Account
-          </button>
-        </div>
 
         <button
           type="button"
@@ -116,7 +86,7 @@ const Register = () => {
               id="reg-name"
               className="form-input"
               type="text"
-              placeholder={role === 'client' ? 'Aarav Mehta' : 'Dr. Priya Sharma'}
+              placeholder="Aarav Mehta"
               {...register('name', { required: 'Name is required' })}
             />
             {errors.name && <p className="form-error">{errors.name.message}</p>}
@@ -128,7 +98,7 @@ const Register = () => {
               id="reg-email"
               className="form-input"
               type="email"
-              placeholder={role === 'client' ? 'client@unfazed.com' : 'dr.priya@unfazed.com'}
+              placeholder="aarav@example.com"
               {...register('email', { required: 'Email is required' })}
             />
             {errors.email && <p className="form-error">{errors.email.message}</p>}
@@ -147,13 +117,18 @@ const Register = () => {
           </div>
 
           <button id="reg-submit" type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
-            {loading ? 'Creating account...' : `Register as ${role === 'client' ? 'Client' : 'Doctor'}`}
+            {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
         <p className="auth-footer">
-          Already have an account? <Link to="/login">Sign in</Link>
+          Already have an account?{' '}
+          <Link to="/login">Sign in here</Link>
         </p>
+
+        <div className="demo-hint mt-3" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', padding: '10px 14px', borderRadius: 8, fontSize: '0.82rem' }}>
+          ℹ️ <strong>Note:</strong> Practitioner/Doctor accounts are provisioned directly by the system administrator.
+        </div>
       </div>
     </div>
   );
