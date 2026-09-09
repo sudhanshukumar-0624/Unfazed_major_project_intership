@@ -4,7 +4,7 @@ import {
   Stethoscope, Search, MapPin, Moon, Sun, Bell, Calendar, Video, Star,
   Clock, CheckCircle2, UserCheck, ChevronLeft, ChevronRight,
   LayoutDashboard, MessageSquare, FileText, Settings, Award, GraduationCap, ShieldCheck,
-  PhoneCall, Mail, HelpCircle, Lock, X, ExternalLink, Sparkles
+  PhoneCall, Mail, HelpCircle, Lock, X, ExternalLink, Sparkles, User, LogOut
 } from 'lucide-react';
 import api from '../../api/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
@@ -253,23 +253,31 @@ const DoctorsDirectory = () => {
               <div className="flex gap-2 align-center">
                 <button
                   className="btn btn-secondary btn-sm flex gap-1.5 align-center"
-                  style={{ borderRadius: 20, fontSize: '0.85rem' }}
-                  onClick={() => setActiveTab('consultations')}
-                  title="My Consultations & Appointment History"
+                  style={{ borderRadius: 20, fontSize: '0.85rem', fontWeight: 600, padding: '6px 14px' }}
+                  onClick={() => {
+                    if (authUser.role === 'doctor') {
+                      navigate('/dashboard');
+                    } else {
+                      setActiveTab('consultations');
+                    }
+                  }}
+                  title={authUser.role === 'doctor' ? 'Go to Doctor Dashboard' : 'View My Consultations'}
                 >
-                  <User size={14} color="var(--primary-light)" /> {authUser.name || 'Client Account'}
+                  <User size={15} color="var(--primary-light, #6366f1)" />
+                  <span>{authUser.name || authUser.email || 'Client Account'}</span>
+                  {authUser.role === 'doctor' && <span className="badge badge-primary" style={{ fontSize: '0.65rem', marginLeft: 4 }}>Doctor</span>}
                 </button>
                 <button
-                  className="btn btn-neutral btn-sm"
-                  style={{ borderRadius: 20, fontSize: '0.8rem' }}
+                  className="btn btn-neutral btn-sm flex gap-1 align-center"
+                  style={{ borderRadius: 20, fontSize: '0.8rem', padding: '6px 12px' }}
                   onClick={logout}
                   title="Sign Out"
                 >
-                  Sign Out
+                  <LogOut size={13} /> Sign Out
                 </button>
               </div>
             ) : (
-              <Link to="/login" className="btn btn-secondary btn-sm" style={{ borderRadius: 20 }}>
+              <Link to="/login" className="btn btn-primary btn-sm" style={{ borderRadius: 20, padding: '6px 16px', fontWeight: 600 }}>
                 Sign In / Account
               </Link>
             )}

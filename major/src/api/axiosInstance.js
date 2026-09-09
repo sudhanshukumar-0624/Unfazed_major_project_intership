@@ -4,22 +4,19 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'https://unfazed-major-project-intership-1.onrender.com/api',
 });
 
-// Attach JWT token to every request automatically
+// Attach JWT token to every request automatically if present
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Handle 401 globally → redirect to login
+// Response interceptor - handle errors gracefully without wiping local session
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('therapist');
-      window.location.href = '/login';
-    }
+    // Do NOT wipe local storage or force redirect to /login on network errors or 401s.
+    // Let components handle API fallbacks seamlessly.
     return Promise.reject(error);
   }
 );
