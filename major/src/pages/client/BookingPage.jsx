@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Calendar, Clock, User, Video, CheckCircle2,
-  Globe, ShieldCheck, ArrowRight, ArrowLeft, Sparkles, IndianRupee
+  Globe, ShieldCheck, ArrowRight, ArrowLeft, Sparkles, IndianRupee, Lock
 } from 'lucide-react';
 import api from '../../api/axiosInstance';
+import { useAuth } from '../../context/AuthContext';
 import './BookingPage.css';
 
 /* ── Load Razorpay script dynamically ── */
@@ -74,6 +75,7 @@ const DEFAULT_AVAILABLE_SLOTS = [
 
 const BookingPage = () => {
   const { slug } = useParams();
+  const { therapist: authUser } = useAuth();
   const slugKey = (slug || '').toLowerCase().trim();
   const initialDoctor = DEFAULT_DOCTOR_MAP[slugKey] || DEFAULT_DOCTOR_MAP['priya-sharma'];
 
@@ -84,7 +86,11 @@ const BookingPage = () => {
   const [slots, setSlots] = useState(DEFAULT_AVAILABLE_SLOTS);
   const [selectedSlot, setSelectedSlot] = useState(DEFAULT_AVAILABLE_SLOTS[0]);
   
-  const [clientForm, setClientForm] = useState({ name: '', email: '', phone: '' });
+  const [clientForm, setClientForm] = useState({
+    name: authUser?.name || '',
+    email: authUser?.email || '',
+    phone: '',
+  });
   const [booking, setBooking] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [bookedSession, setBookedSession] = useState(null);
@@ -92,6 +98,16 @@ const BookingPage = () => {
   const [createdClientId, setCreatedClientId] = useState(null);
 
   const SESSION_PRICE = 1500;
+
+  useEffect(() => {
+    if (authUser) {
+      setClientForm(prev => ({
+        ...prev,
+        name: prev.name || authUser.name || '',
+        email: prev.email || authUser.email || '',
+      }));
+    }
+  }, [authUser]);
 
   useEffect(() => {
     // Non-blocking background fetch if backend is active
@@ -119,6 +135,28 @@ const BookingPage = () => {
         }
       })
       .catch(() => {});
+  };
+
+  const saveAppointmentToHistory = (payId) => {
+    const newBooking = {
+      _id: 'session-' + Date.now(),
+      doctorName: therapist.name,
+      doctorPic: therapist.profilePic,
+      specialization: therapist.specializations?.[0] || 'Mental Health Specialist',
+      date: selectedDate,
+      time: selectedSlot?.displayTime || selectedSlot?.startTime,
+      patientName: clientForm.name || authUser?.name || 'Client User',
+      patientEmail: clientForm.email || authUser?.email || 'client@unfazed.com',
+      meetingLink: bookedSession?.meetingLink || `https://meet.jit.si/Unfazed-Session-${Date.now()}`,
+      amount: SESSION_PRICE,
+      paymentId: payId || 'PAY-VERIFIED',
+      status: 'Confirmed & Paid',
+      createdAt: new Date().toISOString(),
+    };
+    try {
+      const existing = JSON.parse(localStorage.getItem('client_appointments') || '[]');
+      localStorage.setItem('client_appointments', JSON.stringify([newBooking, ...existing]));
+    } catch (e) {}
   };
 
   const handleInfoSubmit = async (e) => {
@@ -173,9 +211,11 @@ const BookingPage = () => {
     try {
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
+        const payId = 'PAY-DEMO-' + Date.now();
+        saveAppointmentToHistory(payId);
         setPaymentInfo({
           orderId: 'ORD-DEMO-' + Date.now(),
-          paymentId: 'PAY-DEMO-' + Date.now(),
+          paymentId: payId,
           amount: SESSION_PRICE,
         });
         setStep(4);
@@ -209,9 +249,11 @@ const BookingPage = () => {
         },
         theme: { color: '#6366f1' },
         handler: async (response) => {
+          const payId = response.razorpay_payment_id || 'PAY-VERIFIED-' + Date.now();
+          saveAppointmentToHistory(payId);
           setPaymentInfo({
             orderId: response.razorpay_order_id || 'ORD-VERIFIED',
-            paymentId: response.razorpay_payment_id || 'PAY-VERIFIED',
+            paymentId: payId,
             amount: SESSION_PRICE,
           });
           setStep(4);
@@ -222,9 +264,11 @@ const BookingPage = () => {
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (err) {
+      const payId = 'PAY-DEMO-' + Date.now();
+      saveAppointmentToHistory(payId);
       setPaymentInfo({
         orderId: 'ORD-DEMO-' + Date.now(),
-        paymentId: 'PAY-DEMO-' + Date.now(),
+        paymentId: payId,
         amount: SESSION_PRICE,
       });
       setStep(4);
@@ -339,6 +383,21 @@ const BookingPage = () => {
               <div className="summary-row"><span className="flex gap-1.5 align-center"><Clock size={16} color="var(--accent-indigo)" /> Time</span><strong>{selectedSlot?.displayTime || selectedSlot?.startTime}</strong></div>
               <div className="summary-row"><span className="flex gap-1.5 align-center"><IndianRupee size={16} color="var(--emerald-icon)" /> Amount</span><strong style={{ color: 'var(--emerald-icon)' }}>₹{SESSION_PRICE.toLocaleString('en-IN')}</strong></div>
             </div>
+
+            {!authUser && (
+              <div className="card mb-4 mt-3" style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: 16, borderRadius: 12 }}>
+                <h4 style={{ color: 'var(--primary-light, #6366f1)', marginBottom: 6, fontSize: '0.95rem' }} className="flex gap-2 align-center">
+                  <Lock size={18} color="var(--accent-indigo)" /> Client Account Sign-In / Registration Required
+                </h4>
+                <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: 12 }}>
+                  Please sign in or create a Client Account to complete your appointment booking and track your session history.
+                </p>
+                <div className="flex gap-2">
+                  <Link to="/login" className="btn btn-primary btn-sm">Sign In</Link>
+                  <Link to="/register?role=client" className="btn btn-secondary btn-sm">Register Client Account</Link>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleInfoSubmit}>
               <div className="form-group">

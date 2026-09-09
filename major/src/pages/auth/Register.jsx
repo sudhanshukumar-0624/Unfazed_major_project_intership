@@ -1,21 +1,30 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../context/AuthContext';
+import { User, Stethoscope } from 'lucide-react';
 import './Auth.css';
 
 const Register = () => {
   const { register: registerAuth, googleLogin } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialRole = searchParams.get('role') === 'client' ? 'client' : 'client';
+  
+  const [role, setRole] = useState(initialRole);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm();
 
   const onSubmit = async (data) => {
     setLoading(true); setError('');
     try {
-      await registerAuth(data.name, data.email, data.password);
-      navigate('/dashboard');
+      const user = await registerAuth(data.name, data.email, data.password, role);
+      if (role === 'client' || user?.role === 'client') {
+        navigate('/');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
@@ -26,12 +35,17 @@ const Register = () => {
   const handleGoogleSignUp = async () => {
     setLoading(true); setError('');
     try {
-      await googleLogin({
-        name: 'New Doctor Practitioner',
-        email: `doctor.${Date.now()}@unfazed.com`,
+      const user = await googleLogin({
+        name: role === 'client' ? 'Client User' : 'New Doctor Practitioner',
+        email: `${role}.${Date.now()}@unfazed.com`,
         googleId: 'google-oauth-reg-' + Date.now(),
+        role,
       });
-      navigate('/dashboard');
+      if (role === 'client' || user?.role === 'client') {
+        navigate('/');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Google Sign-Up failed.');
     } finally {
@@ -49,12 +63,32 @@ const Register = () => {
       <div className="auth-card">
         <div className="auth-logo">
           <div className="auth-logo-icon">U</div>
-          <span>Unfazed</span>
+          <span>Unfazed Portal</span>
         </div>
-        <h1 className="auth-title">Create account</h1>
-        <p className="auth-subtitle">Start your private practice platform</p>
+        <h1 className="auth-title">Create Account</h1>
+        <p className="auth-subtitle">Register as a Client or Doctor Practitioner</p>
 
         {error && <div className="alert alert-error">{error}</div>}
+
+        {/* ── Role Selector ── */}
+        <div className="flex gap-2 mb-4" style={{ background: 'var(--bg-subtle, #1e293b)', padding: 4, borderRadius: 12 }}>
+          <button
+            type="button"
+            className={`btn w-full flex-center gap-1.5 ${role === 'client' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ fontSize: '0.85rem', padding: '8px 12px' }}
+            onClick={() => setRole('client')}
+          >
+            <User size={16} /> Client Account
+          </button>
+          <button
+            type="button"
+            className={`btn w-full flex-center gap-1.5 ${role === 'doctor' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ fontSize: '0.85rem', padding: '8px 12px' }}
+            onClick={() => setRole('doctor')}
+          >
+            <Stethoscope size={16} /> Doctor Account
+          </button>
+        </div>
 
         <button
           type="button"
@@ -82,7 +116,7 @@ const Register = () => {
               id="reg-name"
               className="form-input"
               type="text"
-              placeholder="Dr. Priya Sharma"
+              placeholder={role === 'client' ? 'Aarav Mehta' : 'Dr. Priya Sharma'}
               {...register('name', { required: 'Name is required' })}
             />
             {errors.name && <p className="form-error">{errors.name.message}</p>}
@@ -94,7 +128,7 @@ const Register = () => {
               id="reg-email"
               className="form-input"
               type="email"
-              placeholder="priya@example.com"
+              placeholder={role === 'client' ? 'client@unfazed.com' : 'dr.priya@unfazed.com'}
               {...register('email', { required: 'Email is required' })}
             />
             {errors.email && <p className="form-error">{errors.email.message}</p>}
@@ -113,7 +147,7 @@ const Register = () => {
           </div>
 
           <button id="reg-submit" type="submit" className="btn btn-primary w-full btn-lg" disabled={loading}>
-            {loading ? 'Creating account...' : 'Create Account'}
+            {loading ? 'Creating account...' : `Register as ${role === 'client' ? 'Client' : 'Doctor'}`}
           </button>
         </form>
 

@@ -72,19 +72,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password) => {
+  const register = async (name, email, password, role = 'client') => {
     try {
-      const { data } = await api.post('/auth/register', { name, email, password }, { timeout: 3500 });
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('therapist', JSON.stringify(data));
-      setTherapist(data);
-      return data;
+      const { data } = await api.post('/auth/register', { name, email, password, role }, { timeout: 3500 });
+      const userData = { ...data, role };
+      localStorage.setItem('token', userData.token || 'demo-token-reg');
+      localStorage.setItem('therapist', JSON.stringify(userData));
+      setTherapist(userData);
+      return userData;
     } catch {
       const fallbackUser = {
-        _id: 'doc-fallback-reg',
-        name: name || 'Doctor User',
-        email: email || 'user@demo.com',
-        slug: 'doctor-user',
+        _id: role === 'client' ? 'client-reg-' + Date.now() : 'doc-fallback-reg',
+        name: name || (role === 'client' ? 'Client User' : 'Doctor User'),
+        email: email || (role === 'client' ? 'client@unfazed.com' : 'doctor@unfazed.com'),
+        slug: role === 'client' ? 'client' : 'doctor-user',
+        role,
         token: 'demo-token-reg-2026',
       };
       localStorage.setItem('token', fallbackUser.token);

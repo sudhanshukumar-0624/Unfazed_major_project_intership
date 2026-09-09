@@ -7,6 +7,7 @@ import {
   PhoneCall, Mail, HelpCircle, Lock, X, ExternalLink, Sparkles
 } from 'lucide-react';
 import api from '../../api/axiosInstance';
+import { useAuth } from '../../context/AuthContext';
 import './DoctorsDirectory.css';
 
 const SPECIALTIES = [
@@ -61,12 +62,14 @@ const DEFAULT_DOCTORS = [
 ];
 
 const DoctorsDirectory = () => {
+  const { therapist: authUser, logout } = useAuth();
   const [doctors, setDoctors] = useState(DEFAULT_DOCTORS);
   const [loading, setLoading] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(DEFAULT_DOCTORS[0]);
   
   // Active Sidebar Navigation Tab ('directory', 'consultations', 'support', 'privacy')
   const [activeTab, setActiveTab] = useState('directory');
+  const [clientAppointments, setClientAppointments] = useState([]);
   
   // Theme & Notifications State
   const [isDark, setIsDark] = useState(() => document.body.classList.contains('dark-theme'));
@@ -94,6 +97,28 @@ const DoctorsDirectory = () => {
   const [selectedSlot, setSelectedSlot] = useState('12:00 PM');
   
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem('client_appointments') || '[]');
+    if (stored.length === 0) {
+      setClientAppointments([
+        {
+          _id: 'session-demo-default',
+          doctorName: 'Dr. Priya Sharma',
+          doctorPic: 'https://images.unsplash.com/photo-1594824813566-78a0d922b910?w=300&auto=format&fit=crop&q=80',
+          specialization: 'CBT Therapy & Anxiety Specialist',
+          date: '2026-09-15',
+          time: '09:00 AM - 09:50 AM',
+          patientName: authUser?.name || 'Client User',
+          meetingLink: 'https://meet.jit.si/Unfazed-Session-ClientDemo',
+          status: 'Confirmed & Paid',
+          amount: 1500,
+        }
+      ]);
+    } else {
+      setClientAppointments(stored);
+    }
+  }, [activeTab, authUser]);
 
   useEffect(() => {
     api.get('/therapist/directory/all', { timeout: 3500 })
@@ -216,9 +241,30 @@ const DoctorsDirectory = () => {
               <Bell size={18} />
               <span style={{ position: 'absolute', top: 4, right: 4, width: 8, height: 8, background: '#ef4444', borderRadius: '50%' }} />
             </div>
-            <Link to="/login" className="btn btn-secondary btn-sm" style={{ borderRadius: 20 }}>
-              Sign In / Account
-            </Link>
+            {authUser ? (
+              <div className="flex gap-2 align-center">
+                <button
+                  className="btn btn-secondary btn-sm flex gap-1.5 align-center"
+                  style={{ borderRadius: 20, fontSize: '0.85rem' }}
+                  onClick={() => setActiveTab('consultations')}
+                  title="My Consultations & Appointment History"
+                >
+                  <User size={14} color="var(--primary-light)" /> {authUser.name || 'Client Account'}
+                </button>
+                <button
+                  className="btn btn-neutral btn-sm"
+                  style={{ borderRadius: 20, fontSize: '0.8rem' }}
+                  onClick={logout}
+                  title="Sign Out"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <Link to="/login" className="btn btn-secondary btn-sm" style={{ borderRadius: 20 }}>
+                Sign In / Account
+              </Link>
+            )}
 
             {/* Notifications Popover Drawer */}
             {showNotif && (
@@ -448,55 +494,69 @@ const DoctorsDirectory = () => {
       {/* ── 📅 MODAL 1: My Consultations & Bookings ── */}
       {activeTab === 'consultations' && (
         <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: 540 }}>
+          <div className="modal" style={{ maxWidth: 560, maxHeight: '85vh', overflowY: 'auto' }}>
             <div className="flex-between mb-3">
-              <h2 className="flex gap-2 align-center" style={{ fontSize: '1.4rem', color: '#0f172a', margin: 0 }}>
-                <Calendar size={22} color="var(--accent-indigo)" /> My Consultations
+              <h2 className="flex gap-2 align-center" style={{ fontSize: '1.4rem', color: 'var(--text-main)', margin: 0 }}>
+                <Calendar size={22} color="var(--accent-indigo)" /> My Appointment History
               </h2>
               <button className="header-icon-btn" onClick={() => setActiveTab('directory')}><X size={18} /></button>
             </div>
             <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: 20 }}>
-              View your upcoming 1-on-1 video consultations and join live sessions.
+              View all your past & upcoming booked consultations with our specialist doctors.
             </p>
 
-            <div className="card mb-4" style={{ background: '#f8fafc', borderColor: '#cbd5e1' }}>
-              <div className="flex-between mb-2">
-                <span className="badge badge-emerald flex gap-1"><CheckCircle2 size={12} /> Confirmed & Paid</span>
-                <span className="text-muted" style={{ fontSize: '0.8rem' }}>Session ID: #UFZ-88219</span>
+            {clientAppointments.length === 0 ? (
+              <div className="card text-center mb-4" style={{ padding: 30 }}>
+                <p className="text-muted mb-3">No booked appointments found yet.</p>
+                <button className="btn btn-primary btn-sm" onClick={() => setActiveTab('directory')}>
+                  Browse Doctors & Book
+                </button>
               </div>
-              <div className="flex gap-3 align-center mt-2">
-                <img
-                  src="https://images.unsplash.com/photo-1594824813566-78a0d922b910?w=300&auto=format&fit=crop&q=80"
-                  alt="Doctor"
-                  style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover' }}
-                />
-                <div>
-                  <h3 style={{ fontSize: '1.1rem', margin: 0 }}>Dr. Priya Sharma</h3>
-                  <span className="text-muted" style={{ fontSize: '0.825rem' }}>CBT Therapy & Anxiety Specialist</span>
-                </div>
-              </div>
-              
-              <div className="detail-section-row mt-3" style={{ background: '#ffffff', padding: 12, borderRadius: 10 }}>
-                <div>
-                  <span className="section-label flex gap-1"><Calendar size={13} /> Date</span>
-                  <p className="section-value" style={{ fontWeight: 700 }}>15 Sept 2026</p>
-                </div>
-                <div>
-                  <span className="section-label flex gap-1"><Clock size={13} /> Time</span>
-                  <p className="section-value" style={{ fontWeight: 700 }}>09:00 IST</p>
-                </div>
-              </div>
+            ) : (
+              <div className="flex-column gap-3 mb-4">
+                {clientAppointments.map((appt, i) => (
+                  <div key={appt._id || i} className="card" style={{ padding: 16, border: '1px solid var(--border-light, #cbd5e1)' }}>
+                    <div className="flex-between mb-2">
+                      <span className="badge badge-emerald flex gap-1"><CheckCircle2 size={12} /> {appt.status || 'Confirmed & Paid'}</span>
+                      <span className="text-muted" style={{ fontSize: '0.78rem' }}>Fee: <strong>₹{appt.amount || 1500}</strong></span>
+                    </div>
 
-              <a
-                href="https://meet.jit.si/Unfazed-Session-ClientDemo"
-                target="_blank"
-                rel="noreferrer"
-                className="btn-navy-full mt-3 flex-center gap-2"
-                style={{ textDecoration: 'none', display: 'flex' }}
-              >
-                <Video size={18} /> Join 1-on-1 Video Session
-              </a>
-            </div>
+                    <div className="flex gap-3 align-center mt-2">
+                      <img
+                        src={appt.doctorPic || 'https://images.unsplash.com/photo-1594824813566-78a0d922b910?w=300&auto=format&fit=crop&q=80'}
+                        alt={appt.doctorName}
+                        style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover' }}
+                      />
+                      <div>
+                        <h3 style={{ fontSize: '1.05rem', margin: 0, color: 'var(--text-main)' }}>{appt.doctorName || 'Dr. Priya Sharma'}</h3>
+                        <span className="text-muted" style={{ fontSize: '0.825rem' }}>{appt.specialization || 'Mental Health Specialist'}</span>
+                      </div>
+                    </div>
+
+                    <div className="detail-section-row mt-3" style={{ background: 'var(--bg-subtle, #f8fafc)', padding: 10, borderRadius: 8 }}>
+                      <div>
+                        <span className="section-label flex gap-1"><Calendar size={13} /> Date</span>
+                        <p className="section-value" style={{ fontWeight: 700, fontSize: '0.85rem' }}>{appt.date}</p>
+                      </div>
+                      <div>
+                        <span className="section-label flex gap-1"><Clock size={13} /> Time Slot</span>
+                        <p className="section-value" style={{ fontWeight: 700, fontSize: '0.85rem' }}>{appt.time}</p>
+                      </div>
+                    </div>
+
+                    <a
+                      href={appt.meetingLink || 'https://meet.jit.si/Unfazed-Session-ClientDemo'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-navy-full mt-3 flex-center gap-2"
+                      style={{ textDecoration: 'none', display: 'flex' }}
+                    >
+                      <Video size={18} /> Join 1-on-1 Video Session
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <button className="btn btn-secondary w-full" onClick={() => setActiveTab('directory')}>
               Back to Doctor Directory
