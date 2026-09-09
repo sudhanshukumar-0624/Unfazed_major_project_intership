@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Calendar, Clock, User, Video, CheckCircle2,
   Globe, ShieldCheck, ArrowRight, ArrowLeft, Sparkles, IndianRupee, Lock
@@ -74,6 +74,7 @@ const DEFAULT_AVAILABLE_SLOTS = [
 ];
 
 const BookingPage = () => {
+  const navigate = useNavigate();
   const { slug } = useParams();
   const { therapist: authUser } = useAuth();
   const slugKey = (slug || '').toLowerCase().trim();
