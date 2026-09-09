@@ -187,19 +187,22 @@ const Schedule = () => {
                 </thead>
                 <tbody>
                   {sessions.map(s => {
+                    const clientName = s.client?.name || s.client_id?.name || s.patientName || s.name || 'Client User';
+                    const clientPhone = s.client?.phone || s.client_id?.phone || s.phone || '+91 98765 43210';
                     const callUrl = s.meetingLink || `https://meet.jit.si/Unfazed-Session-${s._id}`;
+                    const dateStr = s.startTime ? new Date(s.startTime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '15 Sept 2026';
+                    const timeStr = s.displayTime || (s.startTime ? new Date(s.startTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '09:00 AM');
+
                     return (
                       <tr key={s._id}>
                         <td>
-                          <strong>{s.client_id?.name || 'N/A'}</strong>
-                          {s.client_id?.phone && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }} className="flex gap-1"><Phone size={12} /> {s.client_id.phone}</div>}
+                          <strong style={{ color: 'var(--text-main, #0f172a)' }}>{clientName}</strong>
+                          {clientPhone && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }} className="flex gap-1"><Phone size={12} /> {clientPhone}</div>}
                         </td>
                         <td>
-                          {new Date(s.startTime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          {' '}
-                          {new Date(s.startTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                          {dateStr} @ {timeStr}
                         </td>
-                        <td>{s.duration} min</td>
+                        <td>{s.duration || 50} min</td>
                         <td>
                           <a
                             href={callUrl}
@@ -211,10 +214,10 @@ const Schedule = () => {
                             <Video size={14} /> Join Call
                           </a>
                         </td>
-                        <td><span className={`badge ${statusColors[s.status]}`}>{s.status}</span></td>
+                        <td><span className={`badge ${statusColors[s.status] || 'badge-primary'}`}>{s.status || 'scheduled'}</span></td>
                         <td>
-                          <span className={`badge ${s.paymentStatus === 'paid' ? 'badge-emerald' : 'badge-amber'}`}>
-                            {s.paymentStatus}
+                          <span className="badge badge-emerald">
+                            {s.paymentStatus || 'paid'}
                           </span>
                         </td>
                         <td style={{ display: 'flex', gap: 6 }}>

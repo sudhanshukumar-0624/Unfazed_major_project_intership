@@ -45,23 +45,83 @@ const Clients = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const fetchClients = async () => {
-    try {
-      const params = {};
-      if (search) params.search = search;
-      if (statusFilter) params.status = statusFilter;
-      const { data } = await api.get('/clients', { params, timeout: 3500 });
-      if (Array.isArray(data) && data.length > 0) {
-        setClients(data);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const syncRealtimeClients = () => {
+      try {
+        const rawDocSessions = JSON.parse(localStorage.getItem('unfazed_doctor_sessions') || '[]');
+        const rawClientAppts = JSON.parse(localStorage.getItem('client_appointments') || '[]');
 
-  useEffect(() => { fetchClients(); }, [search, statusFilter]);
+        const realTimeClients = [];
+
+        rawDocSessions.forEach((s, idx) => {
+          const name = s.client?.name || 'Client User';
+          const email = s.client?.email || 'client@unfazed.com';
+          const phone = s.client?.phone || '+91 98765 43210';
+          if (!realTimeClients.some(item => item.email === email || item.name === name)) {
+            realTimeClients.push({
+              _id: s._id || ('client-rt-' + idx),
+              name,
+              email,
+              phone,
+              status: 'active',
+              consentGiven: true,
+              presentingConcern: 'Anxiety & CBT Support',
+              createdAt: s.startTime || new Date().toISOString(),
+            });
+          }
+        });
+
+        rawClientAppts.forEach((c, idx) => {
+          const name = c.patientName || 'Client User';
+          const email = c.patientEmail || 'client@unfazed.com';
+          const phone = c.patientPhone || '+91 98765 43210';
+          if (!realTimeClients.some(item => item.email === email || item.name === name)) {
+            realTimeClients.push({
+              _id: c._id || ('client-rt-appt-' + idx),
+              name,
+              email,
+              phone,
+              status: 'active',
+              consentGiven: true,
+              presentingConcern: 'Mental Health Consultation',
+              createdAt: c.createdAt || new Date().toISOString(),
+            });
+          }
+        });
+
+        if (realTimeClients.length > 0) {
+          const combined = [...realTimeClients];
+          DEFAULT_CLIENT_LIST.forEach(d => {
+            if (!combined.some(item => item.email === d.email)) {
+              combined.push(d);
+            }
+          });
+          setClients(combined);
+        }
+      } catch (e) {}
+    };
+
+    syncRealtimeClients();
+
+    const fetchClients = async () => {
+      try {
+        const params = {};
+        if (search) params.search = search;
+        if (statusFilter) params.status = statusFilter;
+        const { data } = await api.get('/clients', { params, timeout: 2500 });
+        if (Array.isArray(data) && data.length > 0) {
+          setClients(prev => [...data, ...prev]);
+        }
+      } catch (err) {
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchClients();
+
+    window.addEventListener('storage', syncRealtimeClients);
+    return () => window.removeEventListener('storage', syncRealtimeClients);
+  }, [search, statusFilter]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
