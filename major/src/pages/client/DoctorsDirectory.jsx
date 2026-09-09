@@ -559,16 +559,6 @@ const DoctorsDirectory = () => {
                         <p className="section-value" style={{ fontWeight: 700, fontSize: '0.85rem' }}>{appt.time}</p>
                       </div>
                     </div>
-
-                    <a
-                      href={appt.meetingLink || 'https://meet.jit.si/Unfazed-Session-ClientDemo'}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn-navy-full mt-3 flex-center gap-2"
-                      style={{ textDecoration: 'none', display: 'flex' }}
-                    >
-                      <Video size={18} /> Join 1-on-1 Video Session
-                    </a>
                   </div>
                 ))}
               </div>

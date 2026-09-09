@@ -39,20 +39,68 @@ const Schedule = () => {
   const statusColors = { scheduled: 'badge-primary', completed: 'badge-emerald', cancelled: 'badge-rose', no_show: 'badge-amber' };
 
   useEffect(() => {
+    const syncRealtimeSessions = () => {
+      try {
+        const rawDocSessions = JSON.parse(localStorage.getItem('unfazed_doctor_sessions') || '[]');
+        const rawClientAppts = JSON.parse(localStorage.getItem('client_appointments') || '[]');
+
+        const realTimeList = [];
+
+        rawDocSessions.forEach((s, idx) => {
+          realTimeList.push({
+            _id: s._id || ('realtime-doc-' + idx),
+            client: {
+              name: s.client?.name || 'Aarav Mehta',
+              email: s.client?.email || 'client@unfazed.com',
+              phone: s.client?.phone || '+91 98765 43210'
+            },
+            startTime: s.startTime || new Date().toISOString(),
+            status: s.status || 'scheduled',
+            meetingLink: `https://meet.jit.si/Unfazed-Session-${Date.now()}`,
+          });
+        });
+
+        rawClientAppts.forEach((c, idx) => {
+          if (!realTimeList.some(item => item.client?.name === c.patientName)) {
+            realTimeList.push({
+              _id: c._id || ('realtime-client-' + idx),
+              client: {
+                name: c.patientName || 'Aarav Mehta',
+                email: c.patientEmail || 'client@unfazed.com',
+                phone: '+91 98765 43210'
+              },
+              startTime: new Date(`${c.date || new Date().toISOString().split('T')[0]}T09:00:00`).toISOString(),
+              status: 'scheduled',
+              meetingLink: c.meetingLink || `https://meet.jit.si/Unfazed-Session-${Date.now()}`,
+            });
+          }
+        });
+
+        if (realTimeList.length > 0) {
+          setSessions([...realTimeList, ...DEFAULT_SCHEDULE_SESSIONS]);
+        }
+      } catch (e) {}
+    };
+
+    syncRealtimeSessions();
+
     const fetchData = async () => {
       try {
         const [sessRes, avRes] = await Promise.all([
-          api.get('/scheduling/sessions', { timeout: 3500 }),
-          api.get('/scheduling/availability', { timeout: 3500 }),
+          api.get('/scheduling/sessions', { timeout: 2500 }),
+          api.get('/scheduling/availability', { timeout: 2500 }),
         ]);
         if (Array.isArray(sessRes.data) && sessRes.data.length > 0) {
-          setSessions(sessRes.data);
+          setSessions(prev => [...sessRes.data, ...prev]);
         }
         if (avRes.data && avRes.data._id) setAvailability(avRes.data);
-      } catch (err) { console.error(err); }
+      } catch (err) { }
       finally { setLoading(false); }
     };
     fetchData();
+
+    window.addEventListener('storage', syncRealtimeSessions);
+    return () => window.removeEventListener('storage', syncRealtimeSessions);
   }, []);
 
   const handleStatusUpdate = async (id, status) => {

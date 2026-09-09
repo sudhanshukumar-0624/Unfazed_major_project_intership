@@ -137,16 +137,28 @@ const BookingPage = () => {
       .catch(() => {});
   };
 
+  useEffect(() => {
+    if (step === 4) {
+      const timer = setTimeout(() => {
+        navigate('/?tab=consultations');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [step, navigate]);
+
   const saveAppointmentToHistory = (payId) => {
     const newBooking = {
       _id: 'session-' + Date.now(),
       doctorName: therapist.name,
+      doctorId: therapist._id || therapist.slug,
+      doctorSlug: therapist.slug || 'priya-sharma',
       doctorPic: therapist.profilePic,
       specialization: therapist.specializations?.[0] || 'Mental Health Specialist',
       date: selectedDate,
-      time: selectedSlot?.displayTime || selectedSlot?.startTime,
+      time: selectedSlot?.displayTime || selectedSlot?.startTime || '09:00 AM - 09:50 AM',
       patientName: clientForm.name || authUser?.name || 'Client User',
       patientEmail: clientForm.email || authUser?.email || 'client@unfazed.com',
+      patientPhone: clientForm.phone || '+91 98765 43210',
       meetingLink: bookedSession?.meetingLink || `https://meet.jit.si/Unfazed-Session-${Date.now()}`,
       amount: SESSION_PRICE,
       paymentId: payId || 'PAY-VERIFIED',
@@ -154,8 +166,29 @@ const BookingPage = () => {
       createdAt: new Date().toISOString(),
     };
     try {
-      const existing = JSON.parse(localStorage.getItem('client_appointments') || '[]');
-      localStorage.setItem('client_appointments', JSON.stringify([newBooking, ...existing]));
+      // 1. Save to Client Appointments History
+      const existingClient = JSON.parse(localStorage.getItem('client_appointments') || '[]');
+      localStorage.setItem('client_appointments', JSON.stringify([newBooking, ...existingClient]));
+
+      // 2. Real-time Doctor Schedule & Patients Today Sync
+      const existingDocSessions = JSON.parse(localStorage.getItem('unfazed_doctor_sessions') || '[]');
+      const newDocSession = {
+        _id: newBooking._id,
+        doctorSlug: therapist.slug || 'priya-sharma',
+        doctorName: therapist.name,
+        client: {
+          name: newBooking.patientName,
+          email: newBooking.patientEmail,
+          phone: newBooking.patientPhone,
+        },
+        startTime: new Date(`${selectedDate}T09:00:00`).toISOString(),
+        dateStr: selectedDate,
+        timeDisplay: newBooking.time,
+        status: 'scheduled',
+        paymentStatus: 'paid',
+        amount: SESSION_PRICE,
+      };
+      localStorage.setItem('unfazed_doctor_sessions', JSON.stringify([newDocSession, ...existingDocSessions]));
     } catch (e) {}
   };
 
@@ -497,7 +530,7 @@ const BookingPage = () => {
           <div className="card booking-step-card text-center" style={{ padding: 40 }}>
             <div className="confirmed-icon"><CheckCircle2 size={56} color="var(--emerald-icon)" style={{ margin: '0 auto 12px' }} /></div>
             <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: 8 }}>Booking Confirmed! 🎉</h1>
-            <p className="text-muted mb-4">Your 1-on-1 video consultation has been successfully scheduled.</p>
+            <p className="text-muted mb-4">Your appointment with {therapist.name} has been successfully scheduled.</p>
 
             <div className="confirmed-details">
               <div className="summary-row"><span>Doctor</span><strong>{therapist.name}</strong></div>
@@ -506,22 +539,11 @@ const BookingPage = () => {
               <div className="summary-row"><span>Payment ID</span><strong style={{ fontFamily: 'monospace' }}>{paymentInfo?.paymentId || 'PAY-VERIFIED-2026'}</strong></div>
             </div>
 
-            <div className="mt-4" style={{ background: 'var(--purple-soft)', padding: 20, borderRadius: 'var(--radius-md)' }}>
-              <h4 style={{ color: 'var(--purple-icon)', marginBottom: 6 }}>📹 Video Consultation Access Link</h4>
-              <a
-                href={bookedSession?.meetingLink || `https://meet.jit.si/Unfazed-Session-${Date.now()}`}
-                target="_blank"
-                rel="noreferrer"
-                className="btn btn-indigo btn-lg w-full flex-center gap-2"
-                style={{ textDecoration: 'none', marginTop: 10 }}
-              >
-                <Video size={20} /> Join 1-on-1 Video Call
-              </a>
+            <div className="mt-4" style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: 16, borderRadius: 12 }}>
+              <p style={{ color: 'var(--primary-light, #6366f1)', margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>
+                ⏳ Returning to Home Dashboard in 3 seconds...
+              </p>
             </div>
-
-            <p className="text-muted" style={{ marginTop: 16, fontSize: '0.875rem' }}>
-              A confirmation & video link email has been sent to <strong>{clientForm.email}</strong>
-            </p>
 
             <div className="flex gap-3 justify-center mt-4">
               <button className="btn btn-secondary" onClick={() => {
@@ -531,8 +553,8 @@ const BookingPage = () => {
               }}>
                 Book Another Session
               </button>
-              <Link to="/" className="btn btn-primary">
-                Return to Home
+              <Link to="/?tab=consultations" className="btn btn-primary">
+                Return to Home Portal Now
               </Link>
             </div>
           </div>
